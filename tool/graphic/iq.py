@@ -5,18 +5,18 @@ import os
 
 fs = 100e6   # 实验室里的USRP最适合24MHZ加0.1s，雷达采的采样率为30MHZ
 stft_point = 1024
-duration_time = 0.1
+duration_time = 0.01
 slice_point = int(fs * duration_time)
 
 fig_save_path = 'E:/Drone_dataset/RFUAV/pics_exp1_alldrones/'
 file_path = 'E:/Drone_dataset/RFUAV/rawdata/'
-datapack = 'E:/Drone_dataset/RFUAV/UAVDATA/DJI AVATA2/DJI AVTA2-SNR0dB-85db_5765m_100m_10m(3).iq'
+datapack = 'E:/Drone_dataset/RFUAV/rawdata/DJI AVATA2/DJI AVTA2-SNR0dB-85db_5775m_100m_60m(3).iq'
 
 
 def check_spectrum():
-    drone_name = ''
+    drone_name = 'temp'
     with open(datapack, 'rb') as fp:
-        read_data = np.fromfile(fp, dtype=np.int16)
+        read_data = np.fromfile(fp, dtype=np.float32)
         data = read_data[::2]
         f, t, Zxx = stft(data[0: slice_point],
                          fs, window=windows.hamming(stft_point), nperseg=stft_point, noverlap=stft_point//2)
@@ -69,8 +69,8 @@ def check_folder(folder_path):
 
 
 def main():
-    # check_spectrum()
-    DrawandSave()
+    check_spectrum()
+    # DrawandSave()
 
 
 if __name__ == '__main__':
