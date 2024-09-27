@@ -1,0 +1,39 @@
+train: E:\Drone_dataset\RFUAV\pics_exp1_alldrones\1.dataset\train
+val: E:\Drone_dataset\RFUAV\pics_exp1_alldrones\1.dataset\valid
+test: E:\Drone_dataset\RFUAV\pics_exp1_alldrones\1.dataset\test
+
+
+nc: 31
+names: [
+    'DAUTEL',
+    'DEVENTION',
+    'DJFPVCOMBO',
+    'DJI AVATA',
+    'DJMAVIC3PRO',
+    'DJMINI3',
+    'DJMINI4PRO',
+    'FLYSKY_EL_18',
+    'FLYSKY_16X',
+    'FLYSKY_NV14',
+    'FRSKY-X9DP20',
+    'FRSKY-X14',
+    'FRSKY-X20R',
+    'FUTABA-T10J',
+    'FutabaT14SG',
+    'FUTABA-T16IZ',
+    'FUTABA-T18SZ',
+    'herelink',
+    'JR PROPO_XG7',
+    'JR PROPO_XG14',
+    'JUMPER-T14',
+    'JUMPER-TProV2',
+    'Radiamaster-BOXER',
+    'Radiamaster_TX16S',
+    'Radiolink_AT9S_pro',
+    'Radiolink_AT10_II',
+    'SIYI_FT24',
+    'SIYI_MK15',
+    'SIYI_MK32',
+    'SKYDROID-H12',
+    'SKYDROID-T10',
+]
