@@ -1,0 +1,25 @@
+train:  # 数据集路径
+test:  # 数据集路径
+val: # 数据集路径
+
+datasets:{              
+  |--- train_dataset
+    |---classes1
+      |---images
+    |---classes2
+      |---images
+  |
+  |-- val_dataset
+    |---classes1
+      |---images
+    |---classes2
+      |---images
+  |-- test_dataset
+    |---classes1
+      |---images
+    classes2     
+      |---images   
+}
+
+model = # 模型路径
+labels = []  # 类别
