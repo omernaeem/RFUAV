@@ -11,10 +11,10 @@ CFG中的内容
 """
 # Defalut_CFG = build.build_from_cfg('')  # 之后的解析结果
 Defalut_CFG = None
-temp = "/home/frank/project/RFUAV/reference(temp)/dataset"
+temp = "/home/frank/Dataset/leaf_test"
 
-train_path = "/home/frank/project/RFUAV/reference(temp)/dataset/train"
-val_path = "/home/frank/project/RFUAV/reference(temp)/dataset/valid"
+train_path = "/home/frank/Dataset/leaf_test/train"
+val_path = "/home/frank/Dataset/leaf_test/valid"
 # 定义数据预处理操作
 transform = transforms.Compose([
     transforms.Resize((128, 128)),
@@ -33,7 +33,7 @@ class SpectrumClassifyDataset(datasets.ImageFolder):
         print(f"Total {len(self.imgs)} images")
 
 
-class SpectrumClassifyDataset1(Dataset):
+class SpectrumClassifyDataLoader(Dataset):
     """
     Special dataset class for loading and processing Spectrum.
 
@@ -62,7 +62,9 @@ class SpectrumClassifyDataset1(Dataset):
                  image_size=640,
                  cache=False,
                  hyp=Defalut_CFG,  # 配置文件********写build cfg的函数
-                 batch=8,
+                 batch_size=8,
+                 num_worker=4,
+                 device='0',  # 默认使用gpu,
                  transforms=Defalut_CFG,  # 数据预处理*********xiebulid cfg函数
                  ):
         super().__init__()
@@ -87,7 +89,14 @@ class SpectrumClassifyDataset1(Dataset):
                 print("Warning testset is not detected in your dataset!")
                 
         self.class_to_idx = self.class2indx(root + '/train')
-        # self.trainset, self.valset, self.testset = self.load_data(root, ['.jpg','.png'])
+        self.load_img(root, ['.jpg','.png'])
+        
+        # 图像reshape和数据增强
+        
+        train_set = self.build_dataloader(self.trainset, batch_size=batch_size, num_workers=num_worker)
+        valid_set = self.build_dataloader(self.trainset, batch_size=batch_size, num_workers=num_worker)
+        if not self.testset_noexit:
+            test_set = self.build_dataloader(self.trainset, batch_size=batch_size, num_workers=num_worker)
 
     def __getitem__(self, index):
         return self.datasetinfo['total_data'][index]
@@ -95,12 +104,10 @@ class SpectrumClassifyDataset1(Dataset):
     def __len__(self):
         return len(self.datasetinfo['total_data'])
     
-    def load_data(self, root, extensions):
+    def load_img(self, root, extensions):
         """
         从本地文件夹中读数据
         """
-        
-        # 暂定
         train_path = os.path.join(root, 'train')
         val_path = os.path.join(root, 'valid')
         test_path = os.path.join(root, 'test')
@@ -114,13 +121,16 @@ class SpectrumClassifyDataset1(Dataset):
         self.datasetinfo['len_testset'] = len(self.testset) if not self.testset_noexit else 0
         self.datasetinfo['total_data'] = self.trainset + self.valset + self.testset if not self.testset_noexit else self.trainset + self.valset
         
-        """
-        DataLoader
-        """
-   
-    def build_transforms(self, hyp=None):
-        """Builds and appends transforms to the list."""
-
+    def build_dataloader(
+            self,
+            image_path,
+            batch_size,
+            shuffle=True,
+            num_workers=4,
+            pin_memory=True, 
+    ):
+        return DataLoader(self, image_path, shuffle=shuffle, num_workers=num_workers, pin_memory=pin_memory)
+        
     def class2indx(self, root):
         """
         Returns the index of the class name.
@@ -137,11 +147,15 @@ class SpectrumClassifyDataset1(Dataset):
         """
         Builds the augmentation pipeline.
         """
+        
     def reshape_image(self, image_size):
         """
         预处理图像将图像规格化
         """
- 
+        
+    def build_transforms(self, hyp=None):
+        """Builds and appends transforms to the list."""
+    
     
 def has_file_allowed_extension(filename, extensions) -> bool:
     """Checks if a file is an allowed extension.
@@ -186,35 +200,26 @@ def load_data_TVT(root, class_to_idx, extensions):
     return instance
 
 
-class SpectrumDataloader(DataLoader):
-    """专用的Dataloader
-    
-    """
-
-
 def build_dataset(cfg) -> Dataset:
     """
     承接的参数应该是build CFG之后的
     最终接口，接到train里面
     """
     
-    Dataset = SpectrumClassifyDataset1(cfg)
-    return SpectrumDataloader(Dataset)
-
 
 # 测试用例
-
-dataset = SpectrumClassifyDataset1(root=temp, transforms=None)
+dataset = SpectrumClassifyDataLoader(root=temp, transforms=None)
 td = DataLoader(dataset.trainset, batch_size=32, shuffle=True, num_workers=4)
 vd = DataLoader(dataset.valset, batch_size=32, shuffle=True, num_workers=4)
 
+"""
 trainset = SpectrumClassifyDataset(root=train_path, transform=transform)
 valset = SpectrumClassifyDataset(root=val_path, transform=transform)
 td = DataLoader(trainset, batch_size=32, shuffle=True, num_workers=4)
 vd = DataLoader(trainset, batch_size=32, shuffle=True, num_workers=4)
-
+"""
 
 """Usage
-
-
+    Dataset = SpectrumClassifyDataLoader(cfg)
+    return SpectrumClassifyDataLoader(Dataset)
 """
