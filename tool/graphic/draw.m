@@ -6,7 +6,7 @@ time_sec = 0.1;                   % 需要的分割时间/s
 dataform = 'float32';           % 输入的数据类型
 byte_per = 4;                   % 该数据类型占字节数
 datalength = time_sec*fs*byte_per*2;       % 读取数据的长度，单位是字节(时间*采样率*每个数据占字节*iq)
-file_input ="E:\DataBase\DJFPVCOMBO-22db-90db_5760m_100m_40m\DJFPVCOMBO-22db-90db_5760m_100m_40m_2-4s.dat";% 输入路径
+file_input ="E:\Drone_dataset\RFUAV\rawdata\DJI AVATA2\DJI AVTA2-SNR2dB-85db_5775m_100m_60m(1).iq";% 输入路径
 [filepath, name, ~] = fileparts(file_input); % 获取路径、文件名和后缀名，在原路径创建文件夹存放分割后数据
 myname = char(name);
 flytype = string(myname(1:end-30));
@@ -23,6 +23,17 @@ fseek(fp, 0, 1);
 fileSize = ftell(fp);
 fclose(fp);
 readtime = ceil(fileSize/datalength);
+%% 畫3D圖
+fp = fopen(file_input, 'rb'); 
+data = fread(fp,datalength/4,'float32');
+dataIQ = data(1:2:end-1) + 1i * data(2:2:end);
+stft(dataIQ,fs,FFTLength=512);
+view(-45,45);
+yticks([-50 :10:50]);
+yticklabels([5725:10:5825]);
+xticks([0:10:100]);
+xticklabels([0:0.1/10:0.1]);
+xlabel("时间(s)");
 
 %% 分次读取文件保存
 for i =1:readtime
