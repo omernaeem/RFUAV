@@ -3,7 +3,6 @@ import shutil
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import stft, windows
-import math
 
 
 # 写一个截取算法，统一尺度，当采样率不够的时候要有一个截取算法，在频率上
