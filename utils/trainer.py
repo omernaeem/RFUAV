@@ -45,110 +45,47 @@ class trainer():
                     weight_path=weight_path)
 
     def set_up(self, train_path, val_path, pretrained, weight_path, model='resnet18'):
-        if os.path.exists(weight_path):
+         """
+         Set up the training environment.
+         """
+   
+         self.logger.info(f"Loading model: {model}")
+         
+         if os.path.exists(weight_path):
             pretrained = False
 
-        if not os.path.exists(pretrained):
+         if not os.path.exists(pretrained):
             self.logger.info("Pretrained model not found, using default weight")
             pretrained = True
+               
+         self.model = model_init_(model_name=model, num_class=self.num_class, pretrained=pretrained)
+         # resnet serise model
 
-        self.logger.info(f"Loading model: {model}")
-        # resnet serise model
-        if model == 'resnet18':
-            self.logger.info(f"Using {model}")
-            self.model = models.resnet18(pretrained=pretrained)
-            self.model.fc = nn.Linear(self.model.fc.in_features, self.num_class)
-        elif model == "resnet34":
-            self.logger.info(f"Using {model}")
-            self.model = models.resnet34(pretrained=pretrained)
-            self.model.fc = nn.Linear(self.model.fc.in_features, self.num_class)
-        elif model == 'resnet50':
-            self.logger.info(f"Using {model}")
-            self.model = models.resnet50(pretrained=pretrained)
-            self.model.fc = nn.Linear(self.model.fc.in_features, self.num_class)
-        elif model == 'resnet101':
-            self.logger.info(f"Using {model}")
-            self.model = models.resnet101(pretrained=pretrained)
-            self.model.fc = nn.Linear(self.model.fc.in_features, self.num_class)
-        elif model == 'resnet152':
-            self.logger.info(f"Using {model}")
-            self.model = models.resnet152(pretrained=pretrained)
-            self.model.fc = nn.Linear(self.model.fc.in_features, self.num_class)
+         if os.path.exists(weight_path):
+               self.load_pretrained_weights(weight_path)
+               self.logger.info(f"Loading pretrained weights from: {weight_path}")
 
-        # ViT serise model
-        elif model == "vit_b_16":
-            self.logger.info(f"Using {model}")
-            self.model = models.vit_b_16(pretrained=pretrained)
-            self.model.heads.head = nn.Linear(self.model.heads.head.in_features, self.num_class)
-        elif model == "vit_b_32":
-            self.logger.info(f"Using {model}")
-            self.model = models.vit_b_32(pretrained=pretrained)
-            self.model.heads.head = nn.Linear(self.model.heads.head.in_features, self.num_class)
-        elif model == "vit_l_16":
-            self.logger.info(f"Using {model}")
-            self.model = models.vit_l_16(pretrained=pretrained)
-            self.model.heads.head = nn.Linear(self.model.heads.head.in_features, self.num_class)
-        elif model == "vit_l_32":
-            self.logger.info(f"Using {model}")
-            self.model = models.vit_l_32(pretrained=pretrained)
-            self.model.heads.head = nn.Linear(self.model.heads.head.in_features, self.num_class)
-        elif model == "vit_h_14":
-            self.logger.info(f"Using {model}")
-            self.model = models.vit_h_14(pretrained=pretrained)
-            self.model.heads.head = nn.Linear(self.model.heads.head.in_features, self.num_class)
+         self.model.to(self.device)
+         self.logger.info(f"{model} loaded onto device: {self.device}")
 
-        # SiwnTrans serise mdoel
-        elif model == "swin_v2_t":
-            self.logger.info(f"Using {model}")
-            self.model = models.swin_v2_t(pretrained=pretrained)
-            self.model.head = nn.Linear(self.model.head.in_features, self.num_class)
-        elif model == "swin_v2_s":
-            self.logger.info(f"Using {model}")
-            self.model = models.swin_v2_s(pretrained=pretrained)
-            self.model.head = nn.Linear(self.model.head.in_features, self.num_class)
-        elif model == "swin_v2_b":
-            self.logger.info(f"Using {model}")
-            self.model = models.swin_v2_b(pretrained=pretrained)
-            self.model.head = nn.Linear(self.model.head.in_features, self.num_class)
+         # initializing the dataset
+         self.logger.info(f"Loading dataset from: {train_path} and {val_path}")
+         _train_set = datasets.ImageFolder(root=train_path, transform=transforms.Compose([
+               transforms.Resize((self.image_size, self.image_size)),
+               transforms.ToTensor(),
+               transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+         ]))
+         self.train_set = DataLoader(_train_set, batch_size=self.batch_size, shuffle=self.shuffle)
 
-        # Mobilnet serise model
-        elif model == "mobilenet_v3_large":
-            self.logger.info(f"Using {model}")
-            self.model = models.mobilenet_v3_large(pretrained=pretrained)
-            # self.model.classifier = nn.Linear(self.model.classifier.in_features, self.num_class)
-        elif model == "mobilenet_v3_small":
-            self.logger.info(f"Using {model}")
-            self.model = models.mobilenet_v3_small(pretrained=pretrained)
-            # self.model.classifier = nn.Linear(self.model.classifier.in_features, self.num_class)
+         _val_set = datasets.ImageFolder(root=val_path, transform=transforms.Compose([
+               transforms.Resize((self.image_size, self.image_size)),
+               transforms.ToTensor(),
+               transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+         ]))
+         self.val_set = DataLoader(_val_set, batch_size=self.batch_size, shuffle=self.shuffle)
 
-        else:
-            raise ValueError("model not supported")
-
-        if os.path.exists(weight_path):
-            self.load_pretrained_weights(weight_path)
-            self.logger.info(f"Loading pretrained weights from: {weight_path}")
-
-        self.model.to(self.device)
-        self.logger.info(f"{model} loaded onto device: {self.device}")
-
-        # initializing the dataset
-        self.logger.info(f"Loading dataset from: {train_path} and {val_path}")
-        _train_set = datasets.ImageFolder(root=train_path, transform=transforms.Compose([
-            transforms.Resize((self.image_size, self.image_size)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        ]))
-        self.train_set = DataLoader(_train_set, batch_size=self.batch_size, shuffle=self.shuffle)
-
-        _val_set = datasets.ImageFolder(root=val_path, transform=transforms.Compose([
-            transforms.Resize((self.image_size, self.image_size)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        ]))
-        self.val_set = DataLoader(_val_set, batch_size=self.batch_size, shuffle=self.shuffle)
-
-        # initializing optimizer
-        self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+         # initializing optimizer
+         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
 
     def train(self, num_epochs):
         for epoch in range(num_epochs):
@@ -259,83 +196,65 @@ class trainer():
             self.logger.warning(f"Pretrained weights file not found at: {weight_path}. Skipping weight loading.")
 
 
-"""ToDo
+def model_init_(model_name, num_class, pretrained=True):
+   
+   # resnet serise model
+   if model_name == 'resnet18':
+      model = models.resnet18(pretrained=pretrained)
+      model.fc = nn.Linear(model.fc.in_features, num_class)
+   elif model == "resnet34":
+      model = models.resnet34(pretrained=pretrained)
+      model.fc = nn.Linear(model.fc.in_features, num_class)
+   elif model == 'resnet50':
+      model = models.resnet50(pretrained=pretrained)
+      model.fc = nn.Linear(model.fc.in_features, num_class)
+   elif model == 'resnet101':
+      model = models.resnet101(pretrained=pretrained)
+      model.fc = nn.Linear(model.fc.in_features, num_class)
+   elif model == 'resnet152':
+      model = models.resnet152(pretrained=pretrained)
+      model.fc = nn.Linear(model.fc.in_features, num_class)
 
-def model_select(model_name, num_class, pretrained=True):
+   # ViT serise model
+   elif model == "vit_b_16":
+      model = models.vit_b_16(pretrained=pretrained)
+      model.heads.head = nn.Linear(model.heads.head.in_features, num_class)
+   elif model == "vit_b_32":
+      model = models.vit_b_32(pretrained=pretrained)
+      model.heads.head = nn.Linear(model.heads.head.in_features, num_class)
+   elif model == "vit_l_16":
+      model = models.vit_l_16(pretrained=pretrained)
+      model.heads.head = nn.Linear(model.heads.head.in_features, num_class)
+   elif model == "vit_l_32":
+      model = models.vit_l_32(pretrained=pretrained)
+      model.heads.head = nn.Linear(model.heads.head.in_features, num_class)
+   elif model == "vit_h_14":
+      model = models.vit_h_14(pretrained=pretrained)
+      model.heads.head = nn.Linear(model.heads.head.in_features, num_class)
 
-    logger.info(f"Loading model: {model_name}")
-    # resnet serise model
-    if model_name == 'resnet18':
-        logger.info(f"Using {model}")
-        model = models.resnet18(pretrained=pretrained)
-        model.fc = nn.Linear(model.fc.in_features, num_class)
-    elif model == "resnet34":
-        logger.info(f"Using {model_name}")
-        model = models.resnet34(pretrained=pretrained)
-        model.fc = nn.Linear(model.fc.in_features, num_class)
-    elif model == 'resnet50':
-        self.logger.info(f"Using {model_name}")
-        self.model = models.resnet50(pretrained=pretrained)
-        self.model.fc = nn.Linear(self.model.fc.in_features, self.num_class)
-    elif model == 'resnet101':
-        self.logger.info(f"Using {model}")
-        self.model = models.resnet101(pretrained=pretrained)
-        self.model.fc = nn.Linear(self.model.fc.in_features, self.num_class)
-    elif model == 'resnet152':
-        self.logger.info(f"Using {model}")
-        self.model = models.resnet152(pretrained=pretrained)
-        self.model.fc = nn.Linear(self.model.fc.in_features, self.num_class)
+   # SiwnTrans serise mdoel
+   elif model == "swin_v2_t":
+      model = models.swin_v2_t(pretrained=pretrained)
+      model.head = nn.Linear(model.head.in_features, num_class)
+   elif model == "swin_v2_s":
+      model = models.swin_v2_s(pretrained=pretrained)
+      model.head = nn.Linear(model.head.in_features, num_class)
+   elif model == "swin_v2_b":
+      model = models.swin_v2_b(pretrained=pretrained)
+      model.head = nn.Linear(model.head.in_features, num_class)
 
-    # ViT serise model
-    elif model == "vit_b_16":
-        self.logger.info(f"Using {model}")
-        self.model = models.vit_b_16(pretrained=pretrained)
-        self.model.heads.head = nn.Linear(self.model.heads.head.in_features, self.num_class)
-    elif model == "vit_b_32":
-        self.logger.info(f"Using {model}")
-        self.model = models.vit_b_32(pretrained=pretrained)
-        self.model.heads.head = nn.Linear(self.model.heads.head.in_features, self.num_class)
-    elif model == "vit_l_16":
-        self.logger.info(f"Using {model}")
-        self.model = models.vit_l_16(pretrained=pretrained)
-        self.model.heads.head = nn.Linear(self.model.heads.head.in_features, self.num_class)
-    elif model == "vit_l_32":
-        self.logger.info(f"Using {model}")
-        self.model = models.vit_l_32(pretrained=pretrained)
-        self.model.heads.head = nn.Linear(self.model.heads.head.in_features, self.num_class)
-    elif model == "vit_h_14":
-        self.logger.info(f"Using {model}")
-        self.model = models.vit_h_14(pretrained=pretrained)
-        self.model.heads.head = nn.Linear(self.model.heads.head.in_features, self.num_class)
+   # Mobilnet serise model
+   elif model == "mobilenet_v3_large":
+      model = models.mobilenet_v3_large(pretrained=pretrained)
+      model.classifier = nn.Linear(model.classifier.in_features, num_class)
+   elif model == "mobilenet_v3_small":
+      model = models.mobilenet_v3_small(pretrained=pretrained)
+      model.classifier = nn.Linear(model.classifier.in_features, num_class)
 
-    # SiwnTrans serise mdoel
-    elif model == "swin_v2_t":
-        self.logger.info(f"Using {model}")
-        self.model = models.swin_v2_t(pretrained=pretrained)
-        self.model.head = nn.Linear(self.model.head.in_features, self.num_class)
-    elif model == "swin_v2_s":
-        self.logger.info(f"Using {model}")
-        self.model = models.swin_v2_s(pretrained=pretrained)
-        self.model.head = nn.Linear(self.model.head.in_features, self.num_class)
-    elif model == "swin_v2_b":
-        self.logger.info(f"Using {model}")
-        self.model = models.swin_v2_b(pretrained=pretrained)
-        self.model.head = nn.Linear(self.model.head.in_features, self.num_class)
-
-    # Mobilnet serise model
-    elif model == "mobilenet_v3_large":
-        self.logger.info(f"Using {model}")
-        self.model = models.mobilenet_v3_large(pretrained=pretrained)
-        # self.model.classifier = nn.Linear(self.model.classifier.in_features, self.num_class)
-    elif model == "mobilenet_v3_small":
-        self.logger.info(f"Using {model}")
-        self.model = models.mobilenet_v3_small(pretrained=pretrained)
-        # self.model.classifier = nn.Linear(self.model.classifier.in_features, self.num_class)
-
-    else:
-        raise ValueError("model not supported")
-
-"""
+   else:
+      raise ValueError("model not supported")
+   
+   return model
 
 
 """USAGE
