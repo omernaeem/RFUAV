@@ -16,7 +16,7 @@ fig_save_path = 'E:/Drone_dataset/RFUAV/pics_exp1_alldrones/'
 file_path = 'E:/Drone_dataset/RFUAV/rawdata/'
 
 # 給check用的路徑
-datapack = 'E:/Drone_dataset/RFUAV/rawdata/DJFPVCOMBO/DJFPVCOMBO-16db-90db_5760m_100m_10m.iq'
+datapack = '/home/frank/rawdata/DJFPVCOMBO-16db-90db_5760m_100m_20m_2-4s.dat'
 
 
 def check_spectrum():
