@@ -202,52 +202,52 @@ def model_init_(model_name, num_class, pretrained=True):
    if model_name == 'resnet18':
       model = models.resnet18(pretrained=pretrained)
       model.fc = nn.Linear(model.fc.in_features, num_class)
-   elif model == "resnet34":
+   elif model_name == "resnet34":
       model = models.resnet34(pretrained=pretrained)
       model.fc = nn.Linear(model.fc.in_features, num_class)
-   elif model == 'resnet50':
+   elif model_name == 'resnet50':
       model = models.resnet50(pretrained=pretrained)
       model.fc = nn.Linear(model.fc.in_features, num_class)
-   elif model == 'resnet101':
+   elif model_name == 'resnet101':
       model = models.resnet101(pretrained=pretrained)
       model.fc = nn.Linear(model.fc.in_features, num_class)
-   elif model == 'resnet152':
+   elif model_name == 'resnet152':
       model = models.resnet152(pretrained=pretrained)
       model.fc = nn.Linear(model.fc.in_features, num_class)
 
    # ViT serise model
-   elif model == "vit_b_16":
+   elif model_name == "vit_b_16":
       model = models.vit_b_16(pretrained=pretrained)
       model.heads.head = nn.Linear(model.heads.head.in_features, num_class)
-   elif model == "vit_b_32":
+   elif model_name == "vit_b_32":
       model = models.vit_b_32(pretrained=pretrained)
       model.heads.head = nn.Linear(model.heads.head.in_features, num_class)
-   elif model == "vit_l_16":
+   elif model_name == "vit_l_16":
       model = models.vit_l_16(pretrained=pretrained)
       model.heads.head = nn.Linear(model.heads.head.in_features, num_class)
-   elif model == "vit_l_32":
+   elif model_name == "vit_l_32":
       model = models.vit_l_32(pretrained=pretrained)
       model.heads.head = nn.Linear(model.heads.head.in_features, num_class)
-   elif model == "vit_h_14":
+   elif model_name == "vit_h_14":
       model = models.vit_h_14(pretrained=pretrained)
       model.heads.head = nn.Linear(model.heads.head.in_features, num_class)
 
    # SiwnTrans serise mdoel
-   elif model == "swin_v2_t":
+   elif model_name == "swin_v2_t":
       model = models.swin_v2_t(pretrained=pretrained)
       model.head = nn.Linear(model.head.in_features, num_class)
-   elif model == "swin_v2_s":
+   elif model_name == "swin_v2_s":
       model = models.swin_v2_s(pretrained=pretrained)
       model.head = nn.Linear(model.head.in_features, num_class)
-   elif model == "swin_v2_b":
+   elif model_name == "swin_v2_b":
       model = models.swin_v2_b(pretrained=pretrained)
       model.head = nn.Linear(model.head.in_features, num_class)
 
    # Mobilnet serise model
-   elif model == "mobilenet_v3_large":
+   elif model_name == "mobilenet_v3_large":
       model = models.mobilenet_v3_large(pretrained=pretrained)
       model.classifier = nn.Linear(model.classifier.in_features, num_class)
-   elif model == "mobilenet_v3_small":
+   elif model_name == "mobilenet_v3_small":
       model = models.mobilenet_v3_small(pretrained=pretrained)
       model.classifier = nn.Linear(model.classifier.in_features, num_class)
 
