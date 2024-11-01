@@ -7,6 +7,7 @@
 import cv2
 import albumentations as A
 import os
+import logging
 
 
 """Augmentations for image data augmentation
@@ -78,17 +79,28 @@ def data_augmentation(dataset_path: str = None,
         _ = os.path.join(output_path, path.split('/')[-1])
         if not os.path.exists(_):
             os.mkdir(_)
+        classes = os.listdir(path)
 
-        images = os.listdir(path)
-        i = 0
-        for method in methods:
-            for image in images:
-                original_image = cv2.cvtColor(cv2.imread(os.path.join(path, image)), cv2.COLOR_BGR2RGB)
-                transform = A.Compose(method)
-                augmented = transform(image=original_image)
-                cv2.imwrite(os.path.join(_, image+'_AugM'+str(i)+os.path.splitext(image)[1]), augmented['image'])
-                cv2.imwrite(os.path.join(_, image+'_origin'+os.path.splitext(image)[1]), original_image)
-            i += 1
+        for _class in classes:
+            _save_path = os.path.join(_, _class)
+            if not os.path.exists(_save_path):
+                os.mkdir(_save_path)
+            path_image = os.path.join(path, _class)
+            images = os.listdir(path_image)
+            i = 0
+
+            for method in methods:
+
+                for image in images:
+                    original_image = cv2.cvtColor(cv2.imread(os.path.join(path_image, image)), cv2.COLOR_BGR2RGB)
+                    transform = A.Compose(method)
+                    augmented = transform(image=original_image)
+                    cv2.imwrite(os.path.join(_save_path, image+'_AugM'+str(i)+os.path.splitext(image)[1]), augmented['image'])
+                    cv2.imwrite(os.path.join(_save_path, image+'_origin'+os.path.splitext(image)[1]), original_image)
+                i += 1
+
+            logging.info('Finished augmentation of '+_class)
+
 
 
 def show_image(image):
@@ -100,8 +112,8 @@ def show_image(image):
 
 
 def main():
-    data_path = "E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/dataset/"
-    output_path = "E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/res/"
+    data_path = "E:/Dataset_log/drone_thesis_classification_v2/"
+    output_path = "E:/Drone_dataset/RFUAV/augmentation_exp2/"
     methods = [A.AdvancedBlur(
                     blur_limit=(7, 13),
                     sigma_x_limit=(7, 13),
@@ -137,7 +149,7 @@ def main():
                    p=1
                )
                ]
-    data_augmentation(data_path, methods, output_path)
+    data_augmentation(dataset_path=data_path, output_path=output_path, methods=methods)
 
 
 # test
