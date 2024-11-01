@@ -1,0 +1,21 @@
+# 主要是给inference用，inference使用build获取模型训练过程中使用meta info，训练时又可以手动设参又可以用CFG
+train: E:\Dataset_log\leaf_test\train  # 数据集路径
+val: E:\Dataset_log\leaf_test\valid  # 数据集路径
+model : resnet152  # 模型种类
+weights: E:\Train_log\Drone_thesis\Classification\ResNet152\exp4_codecheck\best_model.pth  # 预训练模型路径
+batch_size: 32
+image_size: (224, 224)
+num_classes: 10  # 种类数量
+class_names: [
+    'Lidah Buaya',
+    'Daung Nangka',
+    'Daun Sirsak',
+    'Daun Sirih',
+    'Daun Pepaya',
+    'Daun Pandan',
+    'Daun Kunyit',
+    'Daun Jeruk',
+    'Daun Jambu Biji',
+]  # 类别
+device: 0 # 使用的训练设备
+epochs: 100
