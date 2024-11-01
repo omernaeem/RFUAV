@@ -6,6 +6,7 @@ from torchvision import models
 import torch.optim as optim
 import os
 import logging
+from build import build_from_cfg, check_cfg
 
 
 class Basetrainer:
@@ -41,47 +42,47 @@ class Basetrainer:
                     weight_path=weight_path)
 
     def set_up(self, train_path, val_path, pretrained, weight_path, model='resnet18'):
-         """
+        """
          Set up the training environment.
          """
-   
-         self.logger.info(f"Loading model: {model}")
-         
-         if os.path.exists(weight_path):
+
+        self.logger.info(f"Loading model: {model}")
+
+        if os.path.exists(weight_path):
             pretrained = False
 
-         if not os.path.exists(pretrained):
+        if not os.path.exists(pretrained):
             self.logger.info("Pretrained model not found, using default weight")
             pretrained = True
-               
-         self.model = model_init_(model_name=model, num_class=self.num_class, pretrained=pretrained)
-         # resnet serise model
 
-         if os.path.exists(weight_path):
-               self.load_pretrained_weights(weight_path)
-               self.logger.info(f"Loading pretrained weights from: {weight_path}")
+        self.model = model_init_(model_name=model, num_class=self.num_class, pretrained=pretrained)
+        # resnet serise model
 
-         self.model.to(self.device)
-         self.logger.info(f"{model} loaded onto device: {self.device}")
+        if os.path.exists(weight_path):
+            self.load_pretrained_weights(weight_path)
+            self.logger.info(f"Loading pretrained weights from: {weight_path}")
 
-         # initializing the dataset
-         self.logger.info(f"Loading dataset from: {train_path} and {val_path}")
-         _train_set = datasets.ImageFolder(root=train_path, transform=transforms.Compose([
-               transforms.Resize((self.image_size, self.image_size)),
-               transforms.ToTensor(),
-               transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-         ]))
-         self.train_set = DataLoader(_train_set, batch_size=self.batch_size, shuffle=self.shuffle)
+        self.model.to(self.device)
+        self.logger.info(f"{model} loaded onto device: {self.device}")
 
-         _val_set = datasets.ImageFolder(root=val_path, transform=transforms.Compose([
-               transforms.Resize((self.image_size, self.image_size)),
-               transforms.ToTensor(),
-               transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-         ]))
-         self.val_set = DataLoader(_val_set, batch_size=self.batch_size, shuffle=self.shuffle)
+        # initializing the dataset
+        self.logger.info(f"Loading dataset from: {train_path} and {val_path}")
+        _train_set = datasets.ImageFolder(root=train_path, transform=transforms.Compose([
+            transforms.Resize((self.image_size, self.image_size)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        ]))
+        self.train_set = DataLoader(_train_set, batch_size=self.batch_size, shuffle=self.shuffle)
 
-         # initializing optimizer
-         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+        _val_set = datasets.ImageFolder(root=val_path, transform=transforms.Compose([
+            transforms.Resize((self.image_size, self.image_size)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        ]))
+        self.val_set = DataLoader(_val_set, batch_size=self.batch_size, shuffle=self.shuffle)
+
+        # initializing optimizer
+        self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
 
     def train(self, num_epochs):
         for epoch in range(num_epochs):
@@ -193,74 +194,84 @@ class Basetrainer:
 
 
 def model_init_(model_name, num_class, pretrained=True):
-   
-   # resnet serise model
-   if model_name == 'resnet18':
-      model = models.resnet18(pretrained=pretrained)
-      model.fc = nn.Linear(model.fc.in_features, num_class)
-   elif model_name == "resnet34":
-      model = models.resnet34(pretrained=pretrained)
-      model.fc = nn.Linear(model.fc.in_features, num_class)
-   elif model_name == 'resnet50':
-      model = models.resnet50(pretrained=pretrained)
-      model.fc = nn.Linear(model.fc.in_features, num_class)
-   elif model_name == 'resnet101':
-      model = models.resnet101(pretrained=pretrained)
-      model.fc = nn.Linear(model.fc.in_features, num_class)
-   elif model_name == 'resnet152':
-      model = models.resnet152(pretrained=pretrained)
-      model.fc = nn.Linear(model.fc.in_features, num_class)
+    # resnet serise model
+    if model_name == 'resnet18':
+        model = models.resnet18(pretrained=pretrained)
+        model.fc = nn.Linear(model.fc.in_features, num_class)
+    elif model_name == "resnet34":
+        model = models.resnet34(pretrained=pretrained)
+        model.fc = nn.Linear(model.fc.in_features, num_class)
+    elif model_name == 'resnet50':
+        model = models.resnet50(pretrained=pretrained)
+        model.fc = nn.Linear(model.fc.in_features, num_class)
+    elif model_name == 'resnet101':
+        model = models.resnet101(pretrained=pretrained)
+        model.fc = nn.Linear(model.fc.in_features, num_class)
+    elif model_name == 'resnet152':
+        model = models.resnet152(pretrained=pretrained)
+        model.fc = nn.Linear(model.fc.in_features, num_class)
 
-   # ViT serise model
-   elif model_name == "vit_b_16":
-      model = models.vit_b_16(pretrained=pretrained)
-      model.heads.head = nn.Linear(model.heads.head.in_features, num_class)
-   elif model_name == "vit_b_32":
-      model = models.vit_b_32(pretrained=pretrained)
-      model.heads.head = nn.Linear(model.heads.head.in_features, num_class)
-   elif model_name == "vit_l_16":
-      model = models.vit_l_16(pretrained=pretrained)
-      model.heads.head = nn.Linear(model.heads.head.in_features, num_class)
-   elif model_name == "vit_l_32":
-      model = models.vit_l_32(pretrained=pretrained)
-      model.heads.head = nn.Linear(model.heads.head.in_features, num_class)
-   elif model_name == "vit_h_14":
-      model = models.vit_h_14(pretrained=pretrained)
-      model.heads.head = nn.Linear(model.heads.head.in_features, num_class)
+    # ViT serise model
+    elif model_name == "vit_b_16":
+        model = models.vit_b_16(pretrained=pretrained)
+        model.heads.head = nn.Linear(model.heads.head.in_features, num_class)
+    elif model_name == "vit_b_32":
+        model = models.vit_b_32(pretrained=pretrained)
+        model.heads.head = nn.Linear(model.heads.head.in_features, num_class)
+    elif model_name == "vit_l_16":
+        model = models.vit_l_16(pretrained=pretrained)
+        model.heads.head = nn.Linear(model.heads.head.in_features, num_class)
+    elif model_name == "vit_l_32":
+        model = models.vit_l_32(pretrained=pretrained)
+        model.heads.head = nn.Linear(model.heads.head.in_features, num_class)
+    elif model_name == "vit_h_14":
+        model = models.vit_h_14(pretrained=pretrained)
+        model.heads.head = nn.Linear(model.heads.head.in_features, num_class)
 
-   # SiwnTrans serise mdoel
-   elif model_name == "swin_v2_t":
-      model = models.swin_v2_t(pretrained=pretrained)
-      model.head = nn.Linear(model.head.in_features, num_class)
-   elif model_name == "swin_v2_s":
-      model = models.swin_v2_s(pretrained=pretrained)
-      model.head = nn.Linear(model.head.in_features, num_class)
-   elif model_name == "swin_v2_b":
-      model = models.swin_v2_b(pretrained=pretrained)
-      model.head = nn.Linear(model.head.in_features, num_class)
+    # SiwnTrans serise mdoel
+    elif model_name == "swin_v2_t":
+        model = models.swin_v2_t(pretrained=pretrained)
+        model.head = nn.Linear(model.head.in_features, num_class)
+    elif model_name == "swin_v2_s":
+        model = models.swin_v2_s(pretrained=pretrained)
+        model.head = nn.Linear(model.head.in_features, num_class)
+    elif model_name == "swin_v2_b":
+        model = models.swin_v2_b(pretrained=pretrained)
+        model.head = nn.Linear(model.head.in_features, num_class)
 
-   # Mobilnet serise model
-   elif model_name == "mobilenet_v3_large":
-      model = models.mobilenet_v3_large(pretrained=pretrained)
-      model.classifier = nn.Linear(model.classifier.in_features, num_class)
-   elif model_name == "mobilenet_v3_small":
-      model = models.mobilenet_v3_small(pretrained=pretrained)
-      model.classifier = nn.Linear(model.classifier.in_features, num_class)
+    # Mobilnet serise model
+    elif model_name == "mobilenet_v3_large":
+        model = models.mobilenet_v3_large(pretrained=pretrained)
+        model.classifier = nn.Linear(model.classifier.in_features, num_class)
+    elif model_name == "mobilenet_v3_small":
+        model = models.mobilenet_v3_small(pretrained=pretrained)
+        model.classifier = nn.Linear(model.classifier.in_features, num_class)
 
-   else:
-      raise ValueError("model not supported")
-   
-   return model
+    else:
+        raise ValueError("model not supported")
+
+    return model
 
 
-"""USAGE
-model = trainer(model='resnet18',
-              train_path='./data/train',
-              val_path='./data/val',
-              scheduler=None,
-              device='cuda) 
-model.train(num__epoch)
-"""
+class CustomTrainer(Basetrainer):
+
+    def __init__(self,
+                 cfg: str,
+                 ):
+        if check_cfg(cfg):
+            self.parameters = build_from_cfg(cfg)
+        else:
+            super(Basetrainer).__init__()
+        print('test')
+
+    def save_yaml(self):
+        """
+        把训练中使用的一些预设参数:preprocessing使用的方法，和一些基础的训练信息写到yaml中，给inference用
+        :return:
+        """
+
+
+"""Usage
 model = Basetrainer(model='resnet152',
                     train_path='E:/Dataset_log/leaf_test/train/',
                     val_path='E:/Dataset_log/leaf_test/valid/',
@@ -271,3 +282,11 @@ model = Basetrainer(model='resnet152',
                     num_class=23,
                     device='cuda')
 model.train(num_epochs=150)
+"""
+
+def main():
+    model = CustomTrainer(cfg='../configs/sample.yaml')
+
+
+if __name__ == '__main__':
+    main()
