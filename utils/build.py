@@ -13,18 +13,25 @@ Model_list = [
 
 
 def check_cfg(cfg: str):
-    opt = yaml.load(open(cfg, 'r'), Loader=yaml.FullLoader)
-    if os.path.exists(opt.train):
-        raise ValueError("Training data path does not exist: {}".format(opt.train))
-    if os.path.exists(opt.val):
-        raise ValueError("Validation data path does not exist: {}".format(opt.val))
-    if not isinstance(opt.model, str) or opt.model.lower() not in Model_list:
+    opt = yaml.load(open(cfg, 'r', encoding='utf-8'), Loader=yaml.FullLoader)
+    if len(opt['class_names']) != opt['num_classes']:
+        raise ValueError("The number of classes does not match the number of class names")
+    if not os.path.exists(opt['train']):
+        raise ValueError("Training data path does not exist: {}".format(opt['train']))
+    if not os.path.exists(opt['val']):
+        raise ValueError("Validation data path does not exist: {}".format(opt['val']))
+    if not os.path.exists(opt['save_path']):
+        raise ValueError("Save path does not exist: {}".format(opt['save_path']))
+    if not isinstance(opt['model'], str) or opt['model'].lower() not in Model_list:
         raise ValueError("The model you specified is not available")
-    if not isinstance(opt.num_classes, int):
+    if not isinstance(opt['num_classes'], int):
         raise ValueError("The number of classes must be an integer")
-    if opt.device == 0 and not torch.cuda.is_available():
+    if opt['weights'] == None or not os.path.exists(opt['weights']):
+        logging.info("No pretrained weights specified, training from scratch")
+        opt['pretrained'] = False
+    if opt['device'] != 'cpu' and not torch.cuda.is_available():
         logging.info("CUDA is not available, using CPU instead")
-        opt.device = "cpu"
+        opt['device'] = "cpu"
     return True
 
 
@@ -34,6 +41,6 @@ def build_from_cfg(cfg: str = DefaultConfig):
         if not check_cfg(cfg):
             raise ValueError("Invalid config file: {}".format(cfg))
         logging.info("Using custom config: {}".format(cfg))
-    opt = yaml.load(open(cfg, 'r'), Loader=yaml.FullLoader)
+    opt = yaml.load(open(cfg, 'r', encoding='utf-8'), Loader=yaml.FullLoader)
 
     return opt
