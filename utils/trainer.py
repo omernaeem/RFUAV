@@ -8,11 +8,7 @@ import os
 import logging
 
 
-class trainer():
-    """
-
-
-    """
+class Basetrainer:
     def __init__(self,
                  model: str,
                  train_path: str,
@@ -265,13 +261,13 @@ model = trainer(model='resnet18',
               device='cuda) 
 model.train(num__epoch)
 """
-model = trainer(model='resnet152',
-                train_path='E:/Dataset_log/leaf_test/train/',
-                val_path='E:/Dataset_log/leaf_test/valid/',
-                weight_path='',
-                image_size=224,
-                save_path='E:/Train_log/Drone_thesis/Classification/ResNet152/exp4_codecheck/',
-                batch_size=10,
-                num_class=23,
-                device='cuda')
+model = Basetrainer(model='resnet152',
+                    train_path='E:/Dataset_log/leaf_test/train/',
+                    val_path='E:/Dataset_log/leaf_test/valid/',
+                    weight_path='',
+                    image_size=224,
+                    save_path='E:/Train_log/Drone_thesis/Classification/ResNet152/exp4_codecheck/',
+                    batch_size=10,
+                    num_class=23,
+                    device='cuda')
 model.train(num_epochs=150)
