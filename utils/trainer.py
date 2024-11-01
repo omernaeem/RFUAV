@@ -6,6 +6,7 @@ from torchvision import models
 import torch.optim as optim
 import os
 import logging
+import yaml
 from build import build_from_cfg, check_cfg
 
 
@@ -260,17 +261,30 @@ class CustomTrainer(Basetrainer):
                  ):
         if check_cfg(cfg):
             self.parameters = build_from_cfg(cfg)
+            super().__init__(
+                model=self.parameters['model'],
+                train_path=self.parameters['train'],
+                val_path=self.parameters['val'],
+                num_class=self.parameters['num_classes'],
+                save_path=self.parameters['save_path'],
+                weight_path=self.parameters['weights'],
+                device=self.parameters['device'],
+                batch_size=self.parameters['batch_size'],
+            )
         else:
-            super(Basetrainer).__init__()
-        print('test')
+            super().__init__(Basetrainer)
+
+        self.class_idx = self.train_set.dataset.class_to_idx
+        self.save_yaml()
 
     def save_yaml(self):
         """
         把训练中使用的一些预设参数:preprocessing使用的方法，和一些基础的训练信息写到yaml中，给inference用
         :return:
         """
-
-
+        self.parameters['class_names'] = self.class_idx
+        with open(os.path.join(self.save_path, 'config.yaml'), 'w', encoding='utf-8') as file:
+            yaml.dump(self.parameters, file, allow_unicode=True)
 """Usage
 model = Basetrainer(model='resnet152',
                     train_path='E:/Dataset_log/leaf_test/train/',
