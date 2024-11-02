@@ -13,18 +13,13 @@ band_width = 40e6;  % 信号带宽
 % 获取文件夹内所有iq文件
 file_in = "E:\DataBase\DJFPVCOMBO-22db-90db_5760m_100m_40m";
 files = dir(fullfile(file_in,'*.dat'));
-for ii = length(files)-2:-1:2
+for ii = length(files)-2:-1:1
     fileName{ii} = files(ii).name;
     file_input = fullfile(file_in,fileName{ii});
     % Load data
     fp = fopen(file_input, "rb");
     data = fread(fp, data_len*2,"float");
     dataIQ = data(1:2:end) + data(2:2:end) * 1j;
-    fclose(fp);
-
-    fp = fopen(file_input, "rb");
-    dataall = fread(fp, "float");
-    dataIQall = dataall(1:2:end) + dataall(2:2:end) * 1j;
     fclose(fp);
     % dataIQ1 = normalize(dataIQ, "norm");
     % 加噪
@@ -76,6 +71,6 @@ for ii = length(files)-2:-1:2
             fprintf("SNR估计值为: %.2fdb\n", snr_esti);
         end
         % 保存文件
-        DoAddNoise(file_in,fileName{ii},dataIQall,signal_power,noise,SNR);
+        DoAddNoise(file_in,fileName{ii},27,noise,SNR);
     end
 end
