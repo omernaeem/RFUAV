@@ -7,10 +7,25 @@ import torch.optim as optim
 import os
 import logging
 import yaml
-from build import build_from_cfg, check_cfg
+from utils.build import build_from_cfg, check_cfg
+import matplot as plt
+import numpy as np
+import cv2
 
 
 class Basetrainer:
+    """Usage
+    model = Basetrainer(model='resnet152',
+                        train_path='',
+                        val_path='',
+                        weight_path='',
+                        image_size=224,
+                        save_path='E:/Train_log/Drone_thesis/Classification/ResNet152/exp4_codecheck/',
+                        batch_size=32,
+                        num_class=23,
+                        device='cuda')
+    model.train(num_epochs=150)
+    """
     def __init__(self,
                  model: str,
                  train_path: str,
@@ -25,6 +40,7 @@ class Basetrainer:
                  batch_size: int = 8,
                  shuffle: bool = False,
                  image_size: int = 224,
+                 lr: float = 0.0001
                  ):
 
         self.batch_size = batch_size
@@ -37,6 +53,7 @@ class Basetrainer:
         self.best_epoch = 0
         self.best_model = None
         self.device = torch.device(device if torch.cuda.is_available() else "cpu")
+        self.lr = lr
         self.logger = self.set_logger(os.path.join(save_path, log_file))
         self.criterion = criterion  # initalizeing the loss function
         self.set_up(model=model, train_path=train_path, val_path=val_path, pretrained=pretrained,
@@ -71,19 +88,25 @@ class Basetrainer:
         _train_set = datasets.ImageFolder(root=train_path, transform=transforms.Compose([
             transforms.Resize((self.image_size, self.image_size)),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ]))
+        """
+        # 检查数据集中的数据
+        images, labels = _train_set[0]
+        # 将图像从 Tensor 转换为 numpy 数组
+        images = images.numpy().transpose((1, 2, 0))
+        cv2.imshow('test', images)
+        cv2.waitKey(0)
+        """
         self.train_set = DataLoader(_train_set, batch_size=self.batch_size, shuffle=self.shuffle)
 
         _val_set = datasets.ImageFolder(root=val_path, transform=transforms.Compose([
             transforms.Resize((self.image_size, self.image_size)),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ]))
         self.val_set = DataLoader(_val_set, batch_size=self.batch_size, shuffle=self.shuffle)
 
         # initializing optimizer
-        self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
 
     def train(self, num_epochs):
         for epoch in range(num_epochs):
@@ -270,6 +293,9 @@ class CustomTrainer(Basetrainer):
                 weight_path=self.parameters['weights'],
                 device=self.parameters['device'],
                 batch_size=self.parameters['batch_size'],
+                shuffle=self.parameters['shuffle'],
+                image_size=self.parameters['image_size'],
+                lr=self.parameters['lr'],
             )
         else:
             super().__init__(Basetrainer)
@@ -285,22 +311,54 @@ class CustomTrainer(Basetrainer):
         self.parameters['class_names'] = self.class_idx
         with open(os.path.join(self.save_path, 'config.yaml'), 'w', encoding='utf-8') as file:
             yaml.dump(self.parameters, file, allow_unicode=True)
-"""Usage
-model = Basetrainer(model='resnet152',
-                    train_path='E:/Dataset_log/leaf_test/train/',
-                    val_path='E:/Dataset_log/leaf_test/valid/',
-                    weight_path='',
-                    image_size=224,
-                    save_path='E:/Train_log/Drone_thesis/Classification/ResNet152/exp4_codecheck/',
-                    batch_size=10,
-                    num_class=23,
-                    device='cuda')
-model.train(num_epochs=150)
-"""
 
-def main():
-    model = CustomTrainer(cfg='../configs/sample.yaml')
+    @property
+    def train(self):
+        num_epochs = self.parameters['num_epochs']
+        for epoch in range(num_epochs):
+            self.logger.info(f"Epoch [{epoch + 1}/{num_epochs}] started.")
+            self.model.train()  # 将模型设置为训练模式
+            running_loss = 0.0
+            correct = 0
+            total = 0
+            for images, labels in self.train_set:
+                images, labels = images.to(self.device), labels.to(self.device)
+                # 清除之前的梯度
+                self.optimizer.zero_grad()
+
+                # 前向传播
+                outputs = self.model(images)
+                loss = self.criterion(outputs, labels)
+
+                # 反向传播并优化
+                loss.backward()
+                self.optimizer.step()
+
+                # 统计训练过程中的损失和准确率
+                running_loss += loss.item()
+                _, predicted = outputs.max(1)
+                total += labels.size(0)
+                correct += predicted.eq(labels).sum().item()
+            train_loss = running_loss / len(self.train_set)
+            train_acc = 100 * correct / total
+            self.logger.info(
+                f'Epoch [{epoch + 1}/{num_epochs}], Train Loss: {train_loss:.4f}, Train Accuracy: {train_acc:.2f}%')
+            val_acc, val_loss = self.val()
+            self.logger.info(f'Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_acc:.2f}%')
+            self.save_model(val_acc, epoch)
 
 
-if __name__ == '__main__':
-    main()
+# for test--------------------------------------------------------------------------------------------------------------
+
+def ImginDataloader(image, title=None):
+    """Imshow for Tensor."""
+    image = image.unsqueeze(0)  # 假设使用 PyTorch
+    image = image.numpy().transpose((1, 2, 0))
+    mean = np.array([0.485, 0.456, 0.406])
+    std = np.array([0.229, 0.224, 0.225])
+    image = std * image + mean
+    image = np.clip(image, 0, 1)
+    cv2.imshow('test', image)
+    cv2.waitKey(0)
+
+# 获取一个样本
