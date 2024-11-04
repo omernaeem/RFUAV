@@ -9,9 +9,9 @@ ddc_decifactor = 4; % 下变频降采样指数
 fs = 100e6;
 
 %% 下面三个是一定要修改的参数：信号带宽、文件名字、文件路径
-band_width = 40e6;  % 信号带宽
-path = "E:\DataBase\DJFPVCOMBO-22db-90db_5760m_100m_40m\DJFPVCOMBO-22db-90db_5760m_100m_40m_6-8s-noise";    % 文件路径
-file = "10dB.dat";                              % 文件名字
+band_width = 20e6;  % 信号带宽
+path = "E:\Drone_dataset\RFUAV\pics_exp2_3drones\rawdata\DJMINI4PRO";    % 文件路径
+file = "DIMINI4PRO-17db-60db_2450m_100m_20m.iq";                              % 文件名字
 
 %% Load data
 fp = fopen(fullfile(path, file), "rb");
