@@ -99,7 +99,7 @@ def data_augmentation(dataset_path: str = None,
                     cv2.imwrite(os.path.join(_save_path, image+'_origin'+os.path.splitext(image)[1]), original_image)
                 i += 1
 
-            logging.info('Finished augmentation of '+_class)
+            logging.info(f"Finished augmentation of {_class}")
 
 
 
