@@ -4,13 +4,13 @@ close all;
 
 %% Parameter Init
 NFFT = 204800;
-data_len = 1.5e6;    % 读取点数
+data_len = 3e6;    % 读取点数
 ddc_decifactor = 4; % 下变频降采样指数
 fs = 100e6;
 
 %% 下面三个是一定要修改的参数：信号带宽、文件名字、文件路径
 band_width = 20e6;  % 信号带宽
-path = "E:\Drone_dataset\RFUAV\pics_exp2_3drones\rawdata\DJMINI4PRO";    % 文件路径
+path = "E:\Drone_dataset\RFUAV\rawdata\DJMINI4PRO";    % 文件路径
 file = "DIMINI4PRO-17db-60db_2450m_100m_20m.iq";                              % 文件名字
 
 %% Load data
