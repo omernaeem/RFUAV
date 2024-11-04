@@ -1,0 +1,15 @@
+clc;clear;
+filein = "E:\DataBase\DJFPVCOMBO-22db-90db_5760m_100m_40m\DJFPVCOMBO-22db-90db_5760m_100m_40m_0-2s-noise";
+files = dir(fullfile(filein,'*.dat'));
+figure
+nfft = 4096;
+for ii = 1:length(files)
+    fileName{ii} = files(ii).name;
+    file_input = fullfile(filein,fileName{ii});
+    subplot(3,4,ii)
+    fp = fopen(file_input,'rb');
+    data = fread(fp,10e6,"float");
+    fclose(fp);
+    dataIQ = data(1:2:end) +  1j*data(2:2:end);
+    stft(dataIQ)
+end
