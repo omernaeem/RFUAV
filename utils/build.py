@@ -8,11 +8,13 @@ import torch
 DefaultConfig = '../configs/config.yaml'
 Model_list = [
     "resnet18", "resnet34", "resnet50", "resnet101", "resnet152",
-    "resnext50_32x4d", "resnext101_32x8d", "wide_resnet50_2", "wide_resnet101_2",
-    "mobilenet_v2", "shufflenet_v2_x0_"]
+    "vit_b_16", "vit_b_32", "vit_l_16", "vit_l_32", "vit_h_14",
+    "swin_v2_t", "swin_v2_s", "swin_v2_b", "mobilenet_v3_small"
+    "mobilenet_v3_large"]
 
 
 def check_cfg(cfg: str):
+
     opt = yaml.load(open(cfg, 'r', encoding='utf-8'), Loader=yaml.FullLoader)
     if len(opt['class_names']) != opt['num_classes']:
         raise ValueError("The number of classes does not match the number of class names")
@@ -33,7 +35,6 @@ def check_cfg(cfg: str):
         logging.info("CUDA is not available, using CPU instead")
         opt['device'] = "cpu"
     return True
-
 
 
 def build_from_cfg(cfg: str = DefaultConfig):
