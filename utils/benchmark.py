@@ -36,10 +36,10 @@ class Model(nn.Module):
             self.logger.info(f"Using config file: {cfg}")
             self.cfg = build_from_cfg(cfg)
 
-        if self.cfg.device == 'cuda':
+        if self.cfg['device'] == 'cuda':
             if torch.cuda.is_available():
                 self.logger.info("Using GPU for inference")
-                self.device = self.cfg.device
+                self.device = self.cfg['device']
         else:
             self.logger.info("Using CPU for inference")
             self.device = "cpu"
@@ -67,22 +67,24 @@ class Model(nn.Module):
         if not os.path.exists(source):
             self.logger.info(f"Source {source} dose not exit")
 
+        # dir detect
         if os.path.isdir(source):
             data_list = glob.glob(os.path.join(source, '*'))
 
             for data in data_list:
-
+                # detect images in dir
                 if is_valid_file(data, image_ext):
                     self.ImgProcessor(data)
-
+                # detect raw datas in dir
                 elif is_valid_file(data, raw_data_ext):
                     self.RawdataProcess(data)
-
                 else: continue
 
+        # detect single image
         elif is_valid_file(source, image_ext):
             self.ImgProcessor(source)
 
+        # detect single pack of raw data
         elif is_valid_file(source, raw_data_ext):
             self.RawdataProcess(source)
 
@@ -90,7 +92,7 @@ class Model(nn.Module):
     def load_model(self):
 
         self.logger.info(f"Using device: {self.device}")
-        model = model_init_(self.cfg.model, self.cfg.num_class, pretrained=self.cfg.pretrained)
+        model = model_init_(self.cfg['model'], self.cfg['num_classes'], pretrained=True)
 
         if os.path.exists(self.weight_path):
             self.logger.info(f"Loading init weights from: {self.weight_path}")
@@ -105,22 +107,30 @@ class Model(nn.Module):
     def ImgProcessor(self, source):
 
         start_time = time.time()
-        self.logger.info(f"Processing image: {source} at {start_time}")
 
-        name = os.path.basename(source)
+        name = os.path.basename(source)[:-4]
         origin_image = Image.open(source).convert('RGB')
         preprocessed_image = self.preprocess(source)
 
         temp = self.model(preprocessed_image)
-        output = self.cfg.class_names[temp]
+
+        probabilities = torch.softmax(temp, dim=1)
+
+        predicted_class_index = torch.argmax(probabilities, dim=1).item()
+        predicted_class_name = get_key_from_value(self.cfg['class_names'], predicted_class_index)
 
         end_time = time.time()
-        self.logger.info(f"Inference time: {end_time - start_time} sec")
-        self.logger.info(f"{source} contains Drone: {output}, start saving result")
+        self.logger.info(f"Inference time: {(end_time-start_time)/100 :.8f} sec")
+        self.logger.info(f"{source} contains Drone: {predicted_class_name}, "
+                         f"confidence: {probabilities[0][predicted_class_index].item()*100 :.2f} %, start saving result")
 
         if self.save:
-            res = self.add_result(output, origin_image)
-            res.save(os.path.join(self.save_path), name)
+            res = self.add_result(res=predicted_class_name,
+                                  probability=probabilities[0][predicted_class_index].item()*100,
+                                  image=origin_image)
+
+            res.save(os.path.join(self.save_path, name+'.jpg'))
+
 
     def RawdataProcess(self, source):
         """ToDo
@@ -132,14 +142,17 @@ class Model(nn.Module):
     def add_result(self,
                    res,
                    image,
-                   position=(10, 10),
+                   position=(40, 40),
                    font="arial.ttf",
-                   font_size=20,
-                   text_color=(255, 0, 0)):
+                   font_size=45,
+                   text_color=(255, 0, 0),
+                   probability=0.0
+                   ):
 
             draw = ImageDraw.Draw(image)
             font = ImageFont.truetype(font, font_size)
-            draw.text(position, res, fill=text_color, font=font)
+            draw.text(position, res + f" {probability:.2f}%", fill=text_color, font=font)
+
             return image
 
     @property
@@ -161,7 +174,7 @@ class Model(nn.Module):
     def preprocess(self, img):
 
         transform = transforms.Compose([
-            transforms.Resize((self.cfg.image_size, self.cfg.image_size)),
+            transforms.Resize((self.cfg['image_size'], self.cfg['image_size'])),
             transforms.ToTensor(),
         ])
 
@@ -190,10 +203,22 @@ def is_valid_file(path, total_ext):
         return False
 
 
+def get_key_from_value(d, value):
+    """
+    根据给定的值，返回字典中对应的键。
+    如果有多个键对应同一个值，只返回第一个找到的键。
+    如果没有找到对应的键，返回 None。
+    """
+    for key, val in d.items():
+        if val == value:
+            return key
+    return None
+
+
 def main():
 
     test = Model(cfg='E:/Train_log/RFUAV/exp1_test/config.yaml',
-                 weight_path='E:/Train_log/RFUAV/exp1_test/config.yaml/ResNet_epoch_29.pth')
+                 weight_path='E:/Train_log/RFUAV/exp1_test/ResNet_epoch_29.pth')
 
     test.inference(source='E:/FowardRes_log/RFUAV/1.code_check/exp1/source',
                    save_path='E:/FowardRes_log/RFUAV/1.code_check/exp1/res')
