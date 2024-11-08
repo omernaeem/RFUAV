@@ -172,26 +172,20 @@ class Basetrainer:
 
     def set_logger(self, log_file):
 
-        # Create a logger
         logger = logging.getLogger("TrainerLogger")
         logger.setLevel(logging.INFO)
 
-        # Create console handler and set level to debug
         ch = logging.StreamHandler()
         ch.setLevel(logging.INFO)
 
-        # Create file handler and set level to info
         fh = logging.FileHandler(log_file)
         fh.setLevel(logging.INFO)
 
-        # Create formatter
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
-        # Add formatter to handlers
         ch.setFormatter(formatter)
         fh.setFormatter(formatter)
 
-        # Add handlers to logger
         logger.addHandler(ch)
         logger.addHandler(fh)
 
