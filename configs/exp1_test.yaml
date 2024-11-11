@@ -3,7 +3,7 @@ train: E:\Dataset_log\drone_thesis_classification_v3\train  # 数据集路径
 val: E:\Dataset_log\drone_thesis_classification_v3\valid  # 数据集路径
 save_path: E:\Train_log\RFUAV\exp1_test
 model : resnet152  # 模型种类
-weights: E:\Train_log\RFUAV\exp1_test\ResNet_epoch_43.pth  # 预训练模型路径
+weights: E:/Train_log/RFUAV/exp1_test/ResNet_epoch_13.pth  # 预训练模型路径
 batch_size: 8
 image_size: 640
 num_classes: 23  # 种类数量
