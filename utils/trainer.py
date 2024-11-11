@@ -329,7 +329,7 @@ class CustomTrainer(Basetrainer):
             train_acc = 100 * correct / total
             self.logger.info(
                 f'Epoch [{epoch + 1}/{num_epochs}], Train Loss: {train_loss:.4f}, Train Accuracy: {train_acc:.2f}%')
-            val_acc, val_loss = self.val()
+            val_acc, val_loss = self.val
             self.logger.info(f'Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_acc:.2f}%')
             self.save_model(val_acc, epoch)
 

@@ -131,7 +131,6 @@ class Model(nn.Module):
 
             res.save(os.path.join(self.save_path, name+'.jpg'))
 
-
     def RawdataProcess(self, source):
         """ToDo
         仅支持用特定python色标画图的原始数据进行推理
@@ -187,7 +186,7 @@ class Model(nn.Module):
         return preprocessed_image
 
     def benchmark(self, data_path):
-        """
+        """ToDo
         对benchmark数据进行推理，并计算指标
         对不同信噪比下的评估集分别进行评估
         :param data_path:
@@ -204,11 +203,6 @@ def is_valid_file(path, total_ext):
 
 
 def get_key_from_value(d, value):
-    """
-    根据给定的值，返回字典中对应的键。
-    如果有多个键对应同一个值，只返回第一个找到的键。
-    如果没有找到对应的键，返回 None。
-    """
     for key, val in d.items():
         if val == value:
             return key
