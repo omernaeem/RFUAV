@@ -14,30 +14,70 @@ import os
 from io import BytesIO
 import imageio
 from PIL import Image
-import queue
-import threading
-import time
 
 
-def generate_images(datapack: str,
-                    file: str,
-                    pack: str,
-                    q: queue.Queue,
-                    fs: int,
-                    stft_point: int,
-                    duration_time: float,
-                    ratio: int = 1,  # 控制产生图片时间间隔的倍率，默认为3生成视频的倍率
+class RawDataProcessor:
+
+    def TransRawDataintoSpectrogram(self,
+                                    fig_save_path: str,
+                                    data_path: str,
+                                    sample_rate: int = 100e6,
+                                    stft_point: int = 2048,
+                                    duration_time: float = 0.1,
+                                    ):
+        DrawandSave(fig_save_path=fig_save_path, file_path=data_path, fs=sample_rate,
+                    stft_point=stft_point, duration_time=duration_time)
+
+    def TransRawDataintoVideo(self,
+                              save_path: str,
+                              data_path: str,
+                              sample_rate: int = 100e6,
+                              stft_point: int = 2048,
+                              duration_time: float = 0.1,
+                              fps: int = 5
+                              ):
+        save_as_video(datapack=data_path, save_path=save_path, fs=sample_rate,
+                      stft_point=stft_point, duration_time=duration_time, fps=fps)
+
+    def ShowSpectrogram(self,
+                        data_path: str,
+                        drone_name: str = 'test',
+                        sample_rate: int = 100e6,
+                        stft_point: int = 2048,
+                        duration_time: float = 0.1,
+                        oneside: bool = False,
+                        Middle_Frequency: float = 2400e6
+                        ):
+
+        if oneside:
+            show_half_only(datapack=data_path, drone_name=drone_name,
+                           fs=sample_rate, stft_point=stft_point, duration_time=duration_time)
+
+        else:
+            show_spectrum(datapack=data_path, drone_name=drone_name, fs=sample_rate, stft_point=stft_point,
+                           duration_time=duration_time, Middle_Frequency=Middle_Frequency)
+
+
+def generate_images(datapack: str = None,
+                    file: str = None,
+                    pack: str = None,
+                    fs: int = 100e6,
+                    stft_point: int = 1024,
+                    duration_time: float = 0.1,
+                    ratio: int = 1,  # 控制产生图片时间间隔的倍率，默认为1生成视频的倍率
                     location: str = 'buffer',
                     ):
 
-    time1 = time.time()
     slice_point = int(fs * duration_time)
     read_data = np.fromfile(datapack, dtype=np.float32)
     data = read_data[::2] + read_data[1::2] * 1j
+    images = []
 
     i = 0
     while (i + 1) * slice_point <= len(data):
-        f, t, Zxx = STFT(data[int(i * slice_point): int((i + 1) * slice_point)], stft_point=stft_point, fs=fs, duration_time=duration_time)
+
+        f, t, Zxx = STFT(data[int(i * slice_point): int((i + 1) * slice_point)],
+                         stft_point=stft_point, fs=fs, duration_time=duration_time, onside=False)
         f = np.fft.fftshift(f)
         Zxx = np.fft.fftshift(Zxx, axes=0)
         aug = 10 * np.log10(np.abs(Zxx))
@@ -54,32 +94,16 @@ def generate_images(datapack: str,
             plt.close()
 
             buffer.seek(0)
-            image = Image.open(buffer)
-            image_array = np.array(image)
-
-            q.put(image_array)
+            images.append(Image.open(buffer))
 
         else:
             plt.savefig(location + file + '/' + pack + '/' + file + ' (' + str(i) + ').jpg', dpi=300)
+            plt.close()
 
         i += 2 ** (-ratio)
 
-
-def manage_cache(q: queue.Queue, save_path: str, cache_size: int, fps: int):
-    all_images = []
-    while True:
-        try:
-            image = q.get(timeout=1)  # 非阻塞地从队列中获取图像
-            all_images.append(image)
-
-            if len(all_images) >= cache_size or q.empty():
-                video_path = save_path + 'video.mp4'
-                imageio.mimsave(video_path, all_images, fps=fps)
-                all_images = []
-                print(f"Saved video to {video_path}")
-        except queue.Empty:
-            if q.empty():
-                break  # 如果队列为空且没有新的图像生成，退出循环
+    if location == 'buffer':
+        return images
 
 
 def save_as_video(datapack: str,
@@ -87,25 +111,16 @@ def save_as_video(datapack: str,
                   fs: int = 100e6,
                   stft_point: int = 1024,
                   duration_time: float = 0.1,
-                  cache_size: int = 50,  # 缓存大小，单位为图像数量
-                  fps: int = 15  # 视频帧率
+                  fps: int = 5  # 视频帧率
                   ):
-    start = time.time()
-    q = queue.Queue(maxsize=cache_size)
 
-    # 创建生成图像的线程
-    generator_thread = threading.Thread(target=generate_images, args=(datapack, None, None,  q, fs, stft_point, duration_time))
-    generator_thread.start()
+    if not os.path.exists(save_path):
+        os.mkdir(save_path)
+    if not os.path.exists(datapack):
+        raise ValueError('File not found!')
 
-    # 创建管理缓存的线程
-    manager_thread = threading.Thread(target=manage_cache, args=(q, save_path, cache_size, fps))
-    manager_thread.start()
-
-    # 等待两个线程完成
-    generator_thread.join()
-    manager_thread.join()
-
-    print(f"Total time: {time.time() - start} seconds")
+    images = generate_images(datapack=datapack, fs=fs, stft_point=stft_point, duration_time=duration_time)
+    imageio.mimsave(save_path+'video.mp4', images, fps=fps)
 
 
 def show_spectrum(datapack: str = '',
@@ -123,7 +138,7 @@ def show_spectrum(datapack: str = '',
         data = read_data[::2] + read_data[1::2] * 1j
         print('STFT transforming')
 
-        f, t, Zxx = STFT(data, stft_point=stft_point, fs=fs, duration_time=duration_time)
+        f, t, Zxx = STFT(data, stft_point=stft_point, fs=fs, duration_time=duration_time, onside=False)
         f = np.linspace(Middle_Frequency-fs / 2, Middle_Frequency+fs / 2, stft_point)
         Zxx = np.fft.fftshift(Zxx, axes=0)
 
@@ -135,9 +150,7 @@ def show_spectrum(datapack: str = '',
         plt.title(drone_name)
         plt.xlabel('Time (s)')
         plt.ylabel('Frequency (Hz)')
-
         plt.show()
-        print("figure done")
 
 
 def show_half_only(datapack: str = '',
@@ -223,15 +236,16 @@ def check_folder(folder_path):
 
 
 def STFT(data,
+         onside: bool = True,
          stft_point: int = 1024,
          fs: int = 100e6,
-         duration_time: float = 0.1
+         duration_time: float = 0.1,
          ):
 
     slice_point = int(fs * duration_time)
 
-    f, t, Zxx = stft(data[0: slice_point],
-         fs, window=windows.hamming(stft_point), nperseg=stft_point)
+    f, t, Zxx = stft(data[0: slice_point], fs,
+         return_onesided=onside, window=windows.hamming(stft_point), nperseg=stft_point)
 
     return f, t, Zxx
 
@@ -239,16 +253,26 @@ def STFT(data,
 # test----------------------------------------------------------------------------------------
 def main():
     datapack = 'E:/Drone_dataset/RFUAV/crop_data/DJFPVCOMBO/DJFPVCOMBO-16db-90db_5760m_100m_10m/DJFPVCOMBO-16db-90db_5760m_100m_10m_0-2s.dat'
+    test = RawDataProcessor()
+    test.ShowSpectrogram(data_path=datapack,
+                         drone_name='DJ FPV COMBO',
+                         sample_rate=100e6,
+                         stft_point=2048,
+                         duration_time=0.1,
+                         Middle_Frequency=2400e6
+                         )
+
+    """
+    datapack = 'E:/Drone_dataset/RFUAV/crop_data/DJFPVCOMBO/DJFPVCOMBO-16db-90db_5760m_100m_10m/DJFPVCOMBO-16db-90db_5760m_100m_10m_0-2s.dat'
     save_path = 'E:/Drone_dataset/RFUAV/darw_test/'
     save_as_video(datapack=datapack,
                   save_path=save_path,
                   fs=100e6,
                   stft_point=1024,
                   duration_time=0.1,
-                  cache_size=50,
-                  fps=0.1,
+                  fps=5,
                   )
-    """
+
     show_spectrum(datapack=datapack,
                   drone_name='test',
                   fs=100e6,
