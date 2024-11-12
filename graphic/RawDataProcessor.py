@@ -14,6 +14,7 @@ import os
 from io import BytesIO
 import imageio
 from PIL import Image
+from typing import Union
 
 
 class RawDataProcessor:
@@ -21,7 +22,7 @@ class RawDataProcessor:
     def TransRawDataintoSpectrogram(self,
                                     fig_save_path: str,
                                     data_path: str,
-                                    sample_rate: int = 100e6,
+                                    sample_rate: Union[int, float] = 100e6,
                                     stft_point: int = 2048,
                                     duration_time: float = 0.1,
                                     ):
@@ -31,7 +32,7 @@ class RawDataProcessor:
     def TransRawDataintoVideo(self,
                               save_path: str,
                               data_path: str,
-                              sample_rate: int = 100e6,
+                              sample_rate: Union[int, float] = 100e6,
                               stft_point: int = 2048,
                               duration_time: float = 0.1,
                               fps: int = 5
@@ -42,7 +43,7 @@ class RawDataProcessor:
     def ShowSpectrogram(self,
                         data_path: str,
                         drone_name: str = 'test',
-                        sample_rate: int = 100e6,
+                        sample_rate: Union[int, float] = 100e6,
                         stft_point: int = 2048,
                         duration_time: float = 0.1,
                         oneside: bool = False,

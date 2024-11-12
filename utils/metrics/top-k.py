@@ -321,8 +321,6 @@ class ClassifyMetrics(SimpleClass):
 
 
 # Plots ----------------------------------------------------------------------------------------------------------------
-
-
 def plot_pr_curve(px, py, ap, save_dir=Path('pr_curve.png'), names=()):
     # Precision-recall curve
     fig, ax = plt.subplots(1, 1, figsize=(9, 6), tight_layout=True)
