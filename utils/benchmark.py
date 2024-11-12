@@ -10,6 +10,8 @@ from torchvision import transforms, datasets
 from torch.utils.data import DataLoader
 from PIL import Image, ImageDraw, ImageFont
 import time
+from graphic.RawDataProcessor import generate_images
+import imageio
 
 image_ext = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff']
 raw_data_ext = ['.iq', '.dat']
@@ -53,6 +55,7 @@ class Model(nn.Module):
         self.model = self.load_model
         self.model.to(self.device)
         self.model.eval()
+        self.save_path = None
 
         self.save = save
 
@@ -132,11 +135,32 @@ class Model(nn.Module):
             res.save(os.path.join(self.save_path, name+'.jpg'))
 
     def RawdataProcess(self, source):
-        """ToDo
+        """
         仅支持用特定python色标画图的原始数据进行推理
-        用python的画图程序把一个原始数据按fps=15画出来，
+        用python的画图程序把一个原始数据按fps=5画出来，
         将所有图像结果预测出来后变成转换成一个视频
         """
+        res = []
+        images = generate_images(source)
+        name = os.path.splitext(os.path.basename(source))
+
+        for image in images:
+
+            temp = self.model(self.preprocess(image))
+
+            probabilities = torch.softmax(temp, dim=1)
+
+            predicted_class_index = torch.argmax(probabilities, dim=1).item()
+            predicted_class_name = get_key_from_value(self.cfg['class_names'], predicted_class_index)
+
+            _ = self.add_result(res=predicted_class_name,
+                                  probability=probabilities[0][predicted_class_index].item() * 100,
+                                  image=image)
+            res.append(_)
+
+        imageio.mimsave(os.path.join(self.save_path, name+'.mp4'), res, fps=5)
+
+
 
     def add_result(self,
                    res,
