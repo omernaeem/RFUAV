@@ -9,14 +9,154 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+from typing import Union, Sequence
+from base_metric import BaseMetric
+from typing import Tuple, Optional, List, Iterable, Dict
 
-from utils import TryExcept, threaded
+
+class Accuracy(BaseMetric):
+    """Top-k accuracy evaluation metric.
+
+    This metric computes the accuracy based on the given topk and thresholds.
+
+    Currently, this metric supports 5 kinds of inputs, i.e. ``numpy.ndarray``,
+    ``torch.Tensor``, ``oneflow.Tensor``, ``tensorflow.Tensor`` and
+    ``paddle.Tensor``, and the implementation for the calculation depends on
+    the inputs type.
+
+    Args:
+        topk (int | Sequence[int]): If the predictions in ``topk``
+            matches the target, the predictions will be regarded as
+            correct ones. Defaults to 1.
+        thrs (Sequence[float | None] | float | None): Predictions with scores
+            under the thresholds are considered negative. None means no
+            thresholds. Defaults to 0.
+        **kwargs: Keyword parameters passed to :class:`BaseMetric`.
+    """
+
+    def __init__(self,
+                 topk: Union[int, Sequence[int]] = (1, ),
+                 thrs: Union[float, Sequence[Union[float, None]], None] = 0.,
+                 **kwargs) -> None:
+        super().__init__(**kwargs)
+
+        if isinstance(topk, int):
+            self.topk = (topk, )
+        else:
+            self.topk = tuple(topk)  # type: ignore
+        self.maxk = max(self.topk)
+
+        if isinstance(thrs, float) or thrs is None:
+            self.thrs = (thrs, )
+        else:
+            self.thrs = tuple(thrs)  # type: ignore
+
+    def add(self, predictions: Sequence, labels: Sequence) -> None:  # type: ignore # yapf: disable # noqa: E501
+        """Add the intermediate results to ``self._results``.
+
+        Args:
+            predictions (Sequence): Predictions from the model. It can be
+                labels (N, ), or scores of every class (N, C).
+            labels (Sequence): The ground truth labels. It should be (N, ).
+        """
+        corrects = self._compute_corrects(predictions, labels)
+        for correct in corrects:
+            self._results.append(correct)
+
+    def _compute_corrects(
+        self, predictions: Union['torch.Tensor', Sequence['torch.Tensor']],
+        labels: Union['torch.Tensor',
+                      Sequence['torch.Tensor']]) -> 'torch.Tensor':
+        """Compute the correct number of per topk and threshold with PyTorch.
+
+        Args:
+            prediction (torch.Tensor | Sequence): Predictions from the model.
+                Same as ``self.add``.
+            labels (torch.Tensor | Sequence): The ground truth labels. Same as
+                ``self.add``.
+
+        Returns:
+            torch.Tensor: Correct number with the following 2 shapes.
+
+            - (N, ): If the ``predictions`` is a label tensor instead of score.
+              Only return a top-1 correct tensor, and ignore the argument
+              ``topk`` and ``thrs``.
+            - (N, num_topk, num_thr): If the ``prediction`` is a score tensor
+              (number of dimensions is 2). Return the correct number on each
+              ``topk`` and ``thrs``.
+        """
+        if not isinstance(predictions, torch.Tensor):
+            predictions = torch.stack(predictions)
+        if not isinstance(labels, torch.Tensor):
+            labels = torch.stack(labels)
+
+        if predictions.ndim == 1:
+            corrects = (predictions.int() == labels)
+            return corrects.float()
+
+        pred_scores, pred_label = _torch_topk(predictions, self.maxk, dim=1)
+        pred_label = pred_label.t()
+
+        corrects = (pred_label == labels.view(1, -1).expand_as(pred_label))
+
+        # compute the corrects corresponding to all topk and thrs per sample
+        corrects_per_sample = torch.zeros(
+            (len(predictions), len(self.topk), len(self.thrs)))
+        for i, k in enumerate(self.topk):
+            for j, thr in enumerate(self.thrs):
+                # Only prediction socres larger than thr are counted as correct
+                if thr is not None:
+                    thr_corrects = corrects & (pred_scores.t() > thr)
+                else:
+                    thr_corrects = corrects
+                corrects_per_sample[:, i, j] = thr_corrects[:k].sum(
+                    0, keepdim=True).float()
+        return corrects_per_sample
+
+    def compute_metric(self,
+                       results: List[Union[Iterable, Union[np.number, 'torch.Tensor',]]]
+                       ) -> Dict[str, float]:
+        """Compute the accuracy metric.
+
+        This method would be invoked in ``BaseMetric.compute`` after
+        distributed synchronization.
+
+        Args:
+            results (list): A list that consisting the correct numbers. This
+                list has already been synced across all ranks.
+
+        Returns:
+            Dict[str, float]: The computed accuracy metric.
+        """
+        if _is_scalar(results[0]):
+            return {'top1': float(sum(results) / len(results))}  # type: ignore
+
+        metric_results = {}
+        for i, k in enumerate(self.topk):
+            for j, thr in enumerate(self.thrs):
+                corrects = [result[i][j] for result in results]  # type: ignore
+                acc = float(sum(corrects) / len(corrects))
+                name = f'top{k}'
+                if len(self.thrs) > 1:
+                    name += '_no-thr' if thr is None else f'_thr-{thr:.2f}'
+                metric_results[name] = acc
+        return metric_results
 
 
-def fitness(x):
-    # Model fitness as a weighted combination of metrics
-    w = [0.0, 0.0, 0.1, 0.9]  # weights for [P, R, mAP@0.5, mAP@0.5:0.95]
-    return (x[:, :4] * w).sum(1)
+def _torch_topk(inputs: 'torch.Tensor',
+                k: int,
+                dim: Optional[int] = None) -> Tuple:
+    """Invoke the PyTorch topk."""
+    return inputs.topk(k, dim=dim)
+
+
+def _is_scalar(obj):
+    """Check if an object is a scalar."""
+    try:
+        float(obj)  # type: ignore
+        return True
+    except Exception:
+        return False
 
 
 def smooth(y, f=0.05):
@@ -122,85 +262,6 @@ def compute_ap(recall, precision):
     return ap, mpre, mrec
 
 
-class ConfusionMatrix:
-    """
-    A class for calculating and updating a confusion matrix for object detection and classification tasks.
-
-    Attributes:
-        task (str): The type of task, either 'detect' or 'classify'.
-        matrix (np.array): The confusion matrix, with dimensions depending on the task.
-        nc (int): The number of classes.
-        conf (float): The confidence threshold for detections.
-        iou_thres (float): The Intersection over Union threshold.
-    """
-
-    def __init__(self, nc, conf=0.25, iou_thres=0.45, task='detect'):
-        """Initialize attributes for the YOLO model."""
-        self.task = task
-        self.matrix = np.zeros((nc + 1, nc + 1)) if self.task == 'detect' else np.zeros((nc, nc))
-        self.nc = nc  # number of classes
-        self.conf = 0.25 if conf in (None, 0.001) else conf  # apply 0.25 if default val conf is passed
-        self.iou_thres = iou_thres
-
-    def process_cls_preds(self, preds, targets):
-        """
-        Update confusion matrix for classification task.
-
-        Args:
-            preds (Array[N, min(nc,5)]): Predicted class labels.
-            targets (Array[N, 1]): Ground truth class labels.
-        """
-        preds, targets = torch.cat(preds)[:, 0], torch.cat(targets)
-        for p, t in zip(preds.cpu().numpy(), targets.cpu().numpy()):
-            self.matrix[p][t] += 1
-
-    def process_batch(self, detections, labels):
-        """
-        Update confusion matrix for object detection task.
-
-        Args:
-            detections (Array[N, 6]): Detected bounding boxes and their associated information.
-                                      Each row should contain (x1, y1, x2, y2, conf, class).
-            labels (Array[M, 5]): Ground truth bounding boxes and their associated class labels.
-                                  Each row should contain (class, x1, y1, x2, y2).
-        """
-        if detections is None:
-            gt_classes = labels.int()
-            for gc in gt_classes:
-                self.matrix[self.nc, gc] += 1  # background FN
-            return
-
-        detections = detections[detections[:, 4] > self.conf]
-        gt_classes = labels[:, 0].int()
-        detection_classes = detections[:, 5].int()
-        iou = box_iou(labels[:, 1:], detections[:, :4])
-
-        x = torch.where(iou > self.iou_thres)
-        if x[0].shape[0]:
-            matches = torch.cat((torch.stack(x, 1), iou[x[0], x[1]][:, None]), 1).cpu().numpy()
-            if x[0].shape[0] > 1:
-                matches = matches[matches[:, 2].argsort()[::-1]]
-                matches = matches[np.unique(matches[:, 1], return_index=True)[1]]
-                matches = matches[matches[:, 2].argsort()[::-1]]
-                matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
-        else:
-            matches = np.zeros((0, 3))
-
-        n = matches.shape[0] > 0
-        m0, m1, _ = matches.transpose().astype(int)
-        for i, gc in enumerate(gt_classes):
-            j = m0 == i
-            if n and sum(j) == 1:
-                self.matrix[detection_classes[m1[j]], gc] += 1  # correct
-            else:
-                self.matrix[self.nc, gc] += 1  # true background
-
-        if n:
-            for i, dc in enumerate(detection_classes):
-                if not any(m1 == i):
-                    self.matrix[dc, self.nc] += 1  # predicted background
-
-
 class ClassifyMetrics(SimpleClass):
     """
     Class for computing classification metrics including top-1 and top-5 accuracy.
@@ -262,7 +323,6 @@ class ClassifyMetrics(SimpleClass):
 # Plots ----------------------------------------------------------------------------------------------------------------
 
 
-@threaded
 def plot_pr_curve(px, py, ap, save_dir=Path('pr_curve.png'), names=()):
     # Precision-recall curve
     fig, ax = plt.subplots(1, 1, figsize=(9, 6), tight_layout=True)
@@ -285,7 +345,6 @@ def plot_pr_curve(px, py, ap, save_dir=Path('pr_curve.png'), names=()):
     plt.close(fig)
 
 
-@threaded
 def plot_mc_curve(px, py, save_dir=Path('mc_curve.png'), names=(), xlabel='Confidence', ylabel='Metric'):
     # Metric-confidence curve
     fig, ax = plt.subplots(1, 1, figsize=(9, 6), tight_layout=True)
@@ -306,3 +365,24 @@ def plot_mc_curve(px, py, save_dir=Path('mc_curve.png'), names=(), xlabel='Confi
     ax.set_title(f'{ylabel}-Confidence Curve')
     fig.savefig(save_dir, dpi=250)
     plt.close(fig)
+
+
+# test------------------------------------------------------------------
+def main():
+    labels = torch.Tensor([0, 1, 2, 3])
+    preds = torch.Tensor([0, 2, 1, 3])
+    test = Accuracy()
+    test(preds, labels)
+
+    labels = torch.tensor([0, 1, 2, 3])
+    preds = torch.tensor([
+        [0.7, 0.1, 0.1, 0.1],
+        [0.1, 0.3, 0.4, 0.2],
+        [0.3, 0.4, 0.2, 0.1],
+        [0.0, 0.0, 0.1, 0.9]])
+    test = Accuracy(topk=(1, 2, 3))
+    test(preds, labels)
+
+
+if __name__ == '__main__':
+    main()
