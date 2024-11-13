@@ -108,7 +108,7 @@ class AveragePrecision(MultiLabelMixin, BaseMetric):
             _result = ap[0].tolist()
             result_metrics['AP_classwise'] = [round(_r, 4) for _r in _result]
         else:
-            result_metrics['mAP'] = round(ap[0].item(), 4)
+            result_metrics['mAP'] = round(ap.item(), 4)
 
         return result_metrics
 
@@ -301,7 +301,7 @@ def label_to_onehot(label: Union['torch.Tensor'], num_classes: int) -> Union['to
     return onehot
 
 
-# test----------------------------------------------------------------------------
+# Usage----------------------------------------------------------------------------
 def main():
     preds = torch.Tensor([[0.9, 0.8, 0.3, 0.2],
                                [0.1, 0.2, 0.2, 0.1],
