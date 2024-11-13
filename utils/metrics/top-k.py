@@ -365,7 +365,7 @@ def plot_mc_curve(px, py, save_dir=Path('mc_curve.png'), names=(), xlabel='Confi
     plt.close(fig)
 
 
-# test------------------------------------------------------------------
+# Usage------------------------------------------------------------------
 def main():
     labels = torch.Tensor([0, 1, 2, 3])
     preds = torch.Tensor([0, 2, 1, 3])
