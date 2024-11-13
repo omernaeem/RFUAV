@@ -1,9 +1,6 @@
 """
-Model validation metrics
+origin: https://github.com/open-mmlab/mmeval
 """
-
-import math
-import warnings
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -260,64 +257,6 @@ def compute_ap(recall, precision):
         ap = np.sum((mrec[i + 1] - mrec[i]) * mpre[i + 1])  # area under curve
 
     return ap, mpre, mrec
-
-
-class ClassifyMetrics(SimpleClass):
-    """
-    Class for computing classification metrics including top-1 and top-5 accuracy.
-
-    Attributes:
-        top1 (float): The top-1 accuracy.
-        top5 (float): The top-5 accuracy.
-        speed (Dict[str, float]): A dictionary containing the time taken for each step in the pipeline.
-
-    Properties:
-        fitness (float): The fitness of the model, which is equal to top-5 accuracy.
-        results_dict (Dict[str, Union[float, str]]): A dictionary containing the classification metrics and fitness.
-        keys (List[str]): A list of keys for the results_dict.
-
-    Methods:
-        process(targets, pred): Processes the targets and predictions to compute classification metrics.
-    """
-
-    def __init__(self) -> None:
-        """Initialize a ClassifyMetrics instance."""
-        self.top1 = 0
-        self.top5 = 0
-        self.speed = {'preprocess': 0.0, 'inference': 0.0, 'loss': 0.0, 'postprocess': 0.0}
-        self.task = 'classify'
-
-    def process(self, targets, pred):
-        """Target classes and predicted classes."""
-        pred, targets = torch.cat(pred), torch.cat(targets)
-        correct = (targets[:, None] == pred).float()
-        acc = torch.stack((correct[:, 0], correct.max(1).values), dim=1)  # (top1, top5) accuracy
-        self.top1, self.top5 = acc.mean(0).tolist()
-
-    @property
-    def fitness(self):
-        """Returns mean of top-1 and top-5 accuracies as fitness score."""
-        return (self.top1 + self.top5) / 2
-
-    @property
-    def results_dict(self):
-        """Returns a dictionary with model's performance metrics and fitness score."""
-        return dict(zip(self.keys + ['fitness'], [self.top1, self.top5, self.fitness]))
-
-    @property
-    def keys(self):
-        """Returns a list of keys for the results_dict property."""
-        return ['metrics/accuracy_top1', 'metrics/accuracy_top5']
-
-    @property
-    def curves(self):
-        """Returns a list of curves for accessing specific metrics curves."""
-        return []
-
-    @property
-    def curves_results(self):
-        """Returns a list of curves for accessing specific metrics curves."""
-        return []
 
 
 # Plots ----------------------------------------------------------------------------------------------------------------
