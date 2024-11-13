@@ -1,17 +1,16 @@
 import torch
-import numpy as np
 import torch.nn as nn
 from utils.trainer import model_init_
 from utils.build import check_cfg, build_from_cfg
 import os
 import logging
 import glob
-from torchvision import transforms, datasets
-from torch.utils.data import DataLoader
+from torchvision import transforms
 from PIL import Image, ImageDraw, ImageFont
 import time
 from graphic.RawDataProcessor import generate_images
 import imageio
+from logger import colorful_logger
 
 image_ext = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff']
 raw_data_ext = ['.iq', '.dat']
@@ -35,19 +34,19 @@ class Model(nn.Module):
         self.logger = self.set_logger
 
         if check_cfg(cfg):
-            self.logger.info(f"Using config file: {cfg}")
+            self.logger.log_with_color(f"Using config file: {cfg}")
             self.cfg = build_from_cfg(cfg)
 
         if self.cfg['device'] == 'cuda':
             if torch.cuda.is_available():
-                self.logger.info("Using GPU for inference")
+                self.logger.log_with_color("Using GPU for inference")
                 self.device = self.cfg['device']
         else:
-            self.logger.info("Using CPU for inference")
+            self.logger.log_with_color("Using CPU for inference")
             self.device = "cpu"
 
         if os.path.exists(weight_path):
-            self.logger.info(f"Using weight file: {weight_path}")
+            self.logger.log_with_color(f"Using weight file: {weight_path}")
             self.weight_path = weight_path
         else:
             raise FileNotFoundError(f"weight path: {weight_path} does not exist")
@@ -65,10 +64,10 @@ class Model(nn.Module):
             if not os.path.exists(save_path):
                 os.mkdir(save_path)
             self.save_path = save_path
-            self.logger.info(f"Saving results to: {save_path}")
+            self.logger.log_with_color(f"Saving results to: {save_path}")
 
         if not os.path.exists(source):
-            self.logger.info(f"Source {source} dose not exit")
+            self.logger.log_with_color(f"Source {source} dose not exit")
 
         # dir detect
         if os.path.isdir(source):
@@ -94,16 +93,16 @@ class Model(nn.Module):
     @property
     def load_model(self):
 
-        self.logger.info(f"Using device: {self.device}")
+        self.logger.log_with_color(f"Using device: {self.device}")
         model = model_init_(self.cfg['model'], self.cfg['num_classes'], pretrained=True)
 
         if os.path.exists(self.weight_path):
-            self.logger.info(f"Loading init weights from: {self.weight_path}")
+            self.logger.log_with_color(f"Loading init weights from: {self.weight_path}")
             state_dict = torch.load(self.weight_path, map_location=self.device)
             model.load_state_dict(state_dict)
-            self.logger.info(f"Successfully loaded pretrained weights from: {self.weight_path}")
+            self.logger.log_with_color(f"Successfully loaded pretrained weights from: {self.weight_path}")
         else:
-            self.logger.warning(f"init weights file not found at: {self.weight_path}. Skipping weight loading.")
+            self.logger.log_with_color(f"init weights file not found at: {self.weight_path}. Skipping weight loading.")
 
         return model
 
@@ -123,8 +122,8 @@ class Model(nn.Module):
         predicted_class_name = get_key_from_value(self.cfg['class_names'], predicted_class_index)
 
         end_time = time.time()
-        self.logger.info(f"Inference time: {(end_time-start_time)/100 :.8f} sec")
-        self.logger.info(f"{source} contains Drone: {predicted_class_name}, "
+        self.logger.log_with_color(f"Inference time: {(end_time-start_time)/100 :.8f} sec")
+        self.logger.log_with_color(f"{source} contains Drone: {predicted_class_name}, "
                          f"confidence: {probabilities[0][predicted_class_index].item()*100 :.2f} %, start saving result")
 
         if self.save:
@@ -181,17 +180,7 @@ class Model(nn.Module):
     @property
     def set_logger(self):
 
-        logger = logging.getLogger("InferenceLogger")
-        logger.setLevel(logging.INFO)
-
-        ch = logging.StreamHandler()
-        ch.setLevel(logging.INFO)
-
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-
-        ch.setFormatter(formatter)
-        logger.addHandler(ch)
-
+        logger = colorful_logger('Inference')
         return logger
 
     def preprocess(self, img):
@@ -233,6 +222,7 @@ def get_key_from_value(d, value):
     return None
 
 
+# Usage--------------------------------------------------------------------------------
 def main():
 
     test = Model(cfg='E:/Train_log/RFUAV/exp1_test/config.yaml',

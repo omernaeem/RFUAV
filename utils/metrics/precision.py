@@ -1,5 +1,5 @@
-from typing import (Dict, List, Optional, Sequence, Tuple, Union, overload)
-
+# origin: https://github.com/open-mmlab/mmeval
+from typing import (Dict, List, Optional, Sequence, Union)
 from base_metric import BaseMetric
 import warnings
 import torch
@@ -304,15 +304,15 @@ def label_to_onehot(label: Union['torch.Tensor'], num_classes: int) -> Union['to
 # Usage----------------------------------------------------------------------------
 def main():
     preds = torch.Tensor([[0.9, 0.8, 0.3, 0.2],
-                               [0.1, 0.2, 0.2, 0.1],
-                               [0.7, 0.5, 0.9, 0.3],
-                               [0.8, 0.1, 0.1, 0.2]])
-    labels = torch.Tensor([[1, 1, 0, 0],
-                                [0, 1, 0, 0],
-                                [0, 0, 1, 0],
-                                [1, 0, 0, 0]])
+                          [0.1, 0.2, 0.2, 0.1],
+                          [0.7, 0.5, 0.9, 0.3],
+                          [0.8, 0.1, 0.1, 0.2]])
+    labels = torch.Tensor([[1, 0, 0, 0],
+                           [0, 1, 0, 0],
+                           [0, 0, 1, 0],
+                           [1, 0, 0, 0]])
     average_precision = AveragePrecision()
-    average_precision(preds, labels)
+    print(average_precision(preds, labels))
 
 
 if __name__ == '__main__':
