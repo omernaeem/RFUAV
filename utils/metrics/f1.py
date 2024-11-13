@@ -1,6 +1,6 @@
+# origin: https://github.com/open-mmlab/mmeval
 import numpy as np
-from typing import TYPE_CHECKING, Dict, Sequence, Tuple, Union, overload
-
+from typing import Dict, Sequence, Tuple, Union
 from base_metric import BaseMetric
 import torch
 
@@ -160,8 +160,16 @@ def main():
 
     f1 = F1Score(num_classes=5, mode=['macro', 'micro'])
 
+    preds = torch.tensor([
+        [0.7, 0.1, 0.1,],
+        [0.1, 0.3, 0.4,],
+        [0.3, 0.4, 0.2,]])
+    _preds = []
+    for _ in preds:
+        _preds.append(_.argmax())
+    preds = [torch.tensor(_preds)]
+
     labels = [torch.Tensor([0, 1, 4])]
-    preds = [torch.Tensor([0, 1, 2])]
 
     for pred, label in zip(preds, labels):
         f1.add([pred], [label])

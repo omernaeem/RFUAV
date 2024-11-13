@@ -10,6 +10,7 @@ import yaml
 from utils.build import build_from_cfg, check_cfg
 import matplot as plt
 import numpy as np
+from logger import colorful_logger
 import cv2
 
 
@@ -69,26 +70,26 @@ class Basetrainer:
 
     def set_up(self, train_path, val_path, pretrained, weight_path, model='resnet18'):
 
-        self.logger.info(f"Loading model: {model}")
+        self.logger.log_with_color(f"Loading model: {model}")
 
         if os.path.exists(weight_path):
             pretrained = False
 
         if not os.path.exists(pretrained):
-            self.logger.info("Pretrained model not found, using default weight")
+            self.logger.log_with_color("Pretrained model not found, using default weight")
             pretrained = True
 
         self.model = model_init_(model_name=model, num_class=self.num_class, pretrained=pretrained)
 
         if os.path.exists(weight_path):
             self.load_pretrained_weights(weight_path)
-            self.logger.info(f"Loading pretrained weights from: {weight_path}")
+            self.logger.log_with_color(f"Loading pretrained weights from: {weight_path}")
 
         self.model.to(self.device)
-        self.logger.info(f"{model} loaded onto device: {self.device}")
+        self.logger.log_with_color(f"{model} loaded onto device: {self.device}")
 
         # initializing the dataset
-        self.logger.info(f"Loading dataset from: {train_path} and {val_path}")
+        self.logger.log_with_color(f"Loading dataset from: {train_path} and {val_path}")
         _train_set = datasets.ImageFolder(root=train_path, transform=transforms.Compose([
             transforms.Resize((self.image_size, self.image_size)),
             transforms.ToTensor(),
@@ -107,7 +108,7 @@ class Basetrainer:
 
     def train(self, num_epochs):
         for epoch in range(num_epochs):
-            self.logger.info(f"Epoch [{epoch + 1}/{num_epochs}] started.")
+            self.logger.log_with_color(f"Epoch [{epoch + 1}/{num_epochs}] started.")
             self.model.train()
             running_loss = 0.0
             correct = 0
@@ -131,15 +132,15 @@ class Basetrainer:
                 correct += predicted.eq(labels).sum().item()
             train_loss = running_loss / len(self.train_set)
             train_acc = 100 * correct / total
-            self.logger.info(
+            self.logger.log_with_color(
                 f'Epoch [{epoch + 1}/{num_epochs}], Train Loss: {train_loss:.4f}, Train Accuracy: {train_acc:.2f}%')
             val_acc, val_loss = self.val
-            self.logger.info(f'Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_acc:.2f}%')
+            self.logger.log_with_color(f'Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_acc:.2f}%')
             self.save_model(val_acc, epoch)
 
     @property
     def val(self):
-        self.logger.info("Starting validation...")
+        self.logger.log_with_color("Starting validation...")
         self.model.eval()
         val_loss = 0.0
         val_correct = 0
@@ -159,7 +160,7 @@ class Basetrainer:
         Save the model after each epoch and track the best model based on validation accuracy.
         """
         checkpoint_path = os.path.join(self.save_path, f'{self.model._get_name()}_epoch_{epoch + 1}.pth')
-        self.logger.info(f'Model saved at {checkpoint_path} (Validation Accuracy: {val_acc:.2f}%)')
+        self.logger.log_with_color(f'Model saved at {checkpoint_path} (Validation Accuracy: {val_acc:.2f}%)')
         torch.save(self.model.state_dict(), checkpoint_path)
 
         # Save the best model if current validation accuracy is higher than the best recorded one
@@ -168,38 +169,22 @@ class Basetrainer:
             self.best_model = self.model.state_dict()
             best_model_path = os.path.join(self.save_path, 'best_model.pth')
             torch.save(self.best_model, best_model_path)
-            self.logger.info(f'New best model saved with Accuracy: {val_acc:.2f}%')
+            self.logger.log_with_color(f'New best model saved with Accuracy: {val_acc:.2f}%')
 
     def set_logger(self, log_file):
 
-        logger = logging.getLogger("TrainerLogger")
-        logger.setLevel(logging.INFO)
-
-        ch = logging.StreamHandler()
-        ch.setLevel(logging.INFO)
-
-        fh = logging.FileHandler(log_file)
-        fh.setLevel(logging.INFO)
-
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-
-        ch.setFormatter(formatter)
-        fh.setFormatter(formatter)
-
-        logger.addHandler(ch)
-        logger.addHandler(fh)
-
+        logger = colorful_logger('Train')
         return logger
 
     def load_pretrained_weights(self, weight_path: str):
 
         if os.path.exists(weight_path):
-            self.logger.info(f"Loading pretrained weights from: {weight_path}")
+            self.logger.log_with_color(f"Loading pretrained weights from: {weight_path}")
             state_dict = torch.load(weight_path, map_location=self.device)
             self.model.load_state_dict(state_dict)
-            self.logger.info(f"Successfully loaded pretrained weights from: {weight_path}")
+            self.logger.log_with_color(f"Successfully loaded pretrained weights from: {weight_path}")
         else:
-            self.logger.warning(f"Pretrained weights file not found at: {weight_path}. Skipping weight loading.")
+            self.logger.log_with_color(f"Pretrained weights file not found at: {weight_path}. Skipping weight loading.")
 
 
 def model_init_(model_name, num_class, pretrained=True):
@@ -288,7 +273,7 @@ class CustomTrainer(Basetrainer):
 
         self.class_idx = self.train_set.dataset.class_to_idx
         if self.save_yaml:
-            self.logger.info(f"Saving yaml file at {self.parameters['save_path']}")
+            self.logger.log_with_color(f"Saving yaml file at {self.parameters['save_path']}")
 
     @property
     def save_yaml(self):
@@ -303,7 +288,7 @@ class CustomTrainer(Basetrainer):
         num_epochs = self.parameters['num_epochs']
 
         for epoch in range(num_epochs):
-            self.logger.info(f"Epoch [{epoch + 1}/{num_epochs}] started.")
+            self.logger.log_with_color(f"Epoch [{epoch + 1}/{num_epochs}] started.")
             self.model.train()
             running_loss = 0.0
             correct = 0
@@ -327,10 +312,10 @@ class CustomTrainer(Basetrainer):
                 correct += predicted.eq(labels).sum().item()
             train_loss = running_loss / len(self.train_set)
             train_acc = 100 * correct / total
-            self.logger.info(
+            self.logger.log_with_color(
                 f'Epoch [{epoch + 1}/{num_epochs}], Train Loss: {train_loss:.4f}, Train Accuracy: {train_acc:.2f}%')
             val_acc, val_loss = self.val
-            self.logger.info(f'Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_acc:.2f}%')
+            self.logger.log_with_color(f'Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_acc:.2f}%')
             self.save_model(val_acc, epoch)
 
 
