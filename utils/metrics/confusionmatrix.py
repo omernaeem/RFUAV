@@ -5,8 +5,10 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import logging
 from typing import Union, Sequence
 from base_metric import BaseMetric
+
 
 class ConfusionMatrix:
     """
@@ -85,3 +87,85 @@ class ConfusionMatrix:
             for i, dc in enumerate(detection_classes):
                 if not any(m1 == i):
                     self.matrix[dc, self.nc] += 1  # predicted background
+
+    def matrix(self):
+        """Returns the confusion matrix."""
+        return self.matrix
+
+    def tp_fp(self):
+        """Returns true positives and false positives."""
+        tp = self.matrix.diagonal()  # true positives
+        fp = self.matrix.sum(1) - tp  # false positives
+        # fn = self.matrix.sum(0) - tp  # false negatives (missed detections)
+        return (tp[:-1], fp[:-1]) if self.task == 'detect' else (tp, fp)  # remove background class if task=detect
+
+    @plt_settings()
+    def plot(self, normalize=True, save_dir='', names=(), on_plot=None):
+        """
+        Plot the confusion matrix using seaborn and save it to a file.
+
+        Args:
+            normalize (bool): Whether to normalize the confusion matrix.
+            save_dir (str): Directory where the plot will be saved.
+            names (tuple): Names of classes, used as labels on the plot.
+            on_plot (func): An optional callback to pass plots path and data when they are rendered.
+        """
+        import seaborn as sn
+
+        array = self.matrix / ((self.matrix.sum(0).reshape(1, -1) + 1E-9) if normalize else 1)  # normalize columns
+        array[array < 0.005] = np.nan  # don't annotate (would appear as 0.00)
+
+        fig, ax = plt.subplots(1, 1, figsize=(12, 9), tight_layout=True)
+        nc, nn = self.nc, len(names)  # number of classes, names
+        sn.set(font_scale=1.0 if nc < 50 else 0.8)  # for label size
+        labels = (0 < nn < 99) and (nn == nc)  # apply names to ticklabels
+        ticklabels = (list(names) + ['background']) if labels else 'auto'
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')  # suppress empty matrix RuntimeWarning: All-NaN slice encountered
+            sn.heatmap(array,
+                       ax=ax,
+                       annot=nc < 30,
+                       annot_kws={
+                           'size': 8},
+                       cmap='Blues',
+                       fmt='.2f' if normalize else '.0f',
+                       square=True,
+                       vmin=0.0,
+                       xticklabels=ticklabels,
+                       yticklabels=ticklabels).set_facecolor((1, 1, 1))
+        title = 'Confusion Matrix' + ' Normalized' * normalize
+        ax.set_xlabel('True')
+        ax.set_ylabel('Predicted')
+        ax.set_title(title)
+        plot_fname = Path(save_dir) / f'{title.lower().replace(" ", "_")}.png'
+        fig.savefig(plot_fname, dpi=250)
+        plt.close(fig)
+        if on_plot:
+            on_plot(plot_fname)
+
+    def print(self):
+        """Print the confusion matrix to the console."""
+        for i in range(self.nc + 1):
+            LOGGER.info(' '.join(map(str, self.matrix[i])))
+
+
+# Usage-------------------------------------------------
+def main():
+    pred = torch.tensor([[0, 0.9, 0.8, 0.7, 0.6],1])
+    targets = torch.tensor([[0, 0.9, 0.8, 0.7, 0.6],2])
+
+    save_dir = ''
+
+
+    test = ConfusionMatrix(nc=5, conf=0.5)
+    test.process_cls_preds(pred, targets)
+    names = []
+    for _ in True, False:
+        test.plot(save_dir=save_dir,
+                  names=names,
+                  normalize=_,)
+
+
+if __name__ == '__main__':
+    main()
+
