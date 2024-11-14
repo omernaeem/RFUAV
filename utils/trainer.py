@@ -5,13 +5,18 @@ import torch.nn as nn
 from torchvision import models
 import torch.optim as optim
 import os
-import logging
 import yaml
 from utils.build import build_from_cfg, check_cfg
-import matplot as plt
-import numpy as np
-from logger import colorful_logger
+from utils.logger import colorful_logger
 import cv2
+from abc import abstractmethod
+from .metrics.base_metric import EVAMetric
+import sys
+
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+METRIC = os.path.join(current_dir, './metrics')
+sys.path.append(METRIC)
 
 
 class Basetrainer:
@@ -106,6 +111,7 @@ class Basetrainer:
         # initializing optimizer
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
 
+    @abstractmethod
     def train(self, num_epochs):
         for epoch in range(num_epochs):
             self.logger.log_with_color(f"Epoch [{epoch + 1}/{num_epochs}] started.")
@@ -134,9 +140,9 @@ class Basetrainer:
             train_acc = 100 * correct / total
             self.logger.log_with_color(
                 f'Epoch [{epoch + 1}/{num_epochs}], Train Loss: {train_loss:.4f}, Train Accuracy: {train_acc:.2f}%')
-            val_acc, val_loss = self.val
-            self.logger.log_with_color(f'Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_acc:.2f}%')
-            self.save_model(val_acc, epoch)
+            metrics = self.val
+            self.logger.log_with_color(f'Validation Loss: {metrics["loss"]:.4f}, Validation Accuracy: {metrics["acc"]:.2f}%')
+            self.save_model(metrics['acc'], epoch)
 
     @property
     def val(self):
@@ -145,15 +151,32 @@ class Basetrainer:
         val_loss = 0.0
         val_correct = 0
         val_total = 0
+        val_probabilities = []
+        val_total_labels = []
         with torch.no_grad():
             for val_images, val_labels in self.val_set:
                 val_images, val_labels = val_images.to(self.device), val_labels.to(self.device)
                 val_outputs = self.model(val_images)
+                for val_output in val_outputs:
+                    val_probabilities.append(list(torch.softmax(val_output, dim=0)))
                 val_loss += self.criterion(val_outputs, val_labels).item()
                 _, val_predicted = val_outputs.max(1)
                 val_total += val_labels.size(0)
                 val_correct += val_predicted.eq(val_labels).sum().item()
-        return 100 * val_correct / val_total, val_loss / len(self.val_set)
+                val_total_labels.append(val_labels)
+        _val_total_labels = torch.concat(val_total_labels, dim=0)
+        _val_probabilities = torch.tensor(val_probabilities)
+        metrics = EVAMetric(preds=_val_probabilities.to(self.device),
+                            labels=_val_total_labels,
+                            num_classes=self.num_class,
+                            tasks=('f1', 'precision'),
+                            topk=(1, 3, 5),
+                            save_path=self.save_path,
+                            classes_name=self.train_set.dataset.classes)
+
+        metrics['acc'] = 100 * val_correct / val_total
+        metrics['total_loss'] = val_loss / len(self.val_set)
+        return metrics
 
     def save_model(self, val_acc, epoch):
         """
@@ -173,7 +196,7 @@ class Basetrainer:
 
     def set_logger(self, log_file):
 
-        logger = colorful_logger('Train')
+        logger = colorful_logger(name='Train', logfile=log_file)
         return logger
 
     def load_pretrained_weights(self, weight_path: str):
@@ -314,9 +337,15 @@ class CustomTrainer(Basetrainer):
             train_acc = 100 * correct / total
             self.logger.log_with_color(
                 f'Epoch [{epoch + 1}/{num_epochs}], Train Loss: {train_loss:.4f}, Train Accuracy: {train_acc:.2f}%')
-            val_acc, val_loss = self.val
-            self.logger.log_with_color(f'Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_acc:.2f}%')
-            self.save_model(val_acc, epoch)
+            metrics = self.val
+            self.logger.log_with_color(f'Validation Loss: {metrics["loss"]:.4f},')
+            self.logger.log_with_color(f' Validation Accuracy: {metrics["acc"]:.2f}%,')
+            self.logger.log_with_color(f' Validation macro_F1: {metrics["f1"]["macro_f1"]}')
+            self.logger.log_with_color(f' Validation micro_F1: {metrics["f1"]["micro_f1"]}')
+            self.logger.log_with_color(f' Validation mAP: {metrics["mAP"]["mAP"]}')
+            self.logger.log_with_color(f' Validation Top-k Accuracy: {metrics["Top-k"]}')
+
+            self.save_model(metrics, epoch)
 
 
 # for test--------------------------------------------------------------------------------------------------------------
