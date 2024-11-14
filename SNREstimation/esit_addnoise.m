@@ -11,9 +11,10 @@ fs = 100e6;
 %% 下面三个是一定要修改的参数：符号贷款、文件名字、文件路径
 band_width = 40e6;  % 信号带宽
 % 获取文件夹内所有iq文件
-file_in = "E:\Drone_dataset\RFUAV\pics_exp2_3drones\rawdata\MINI4Pro";
+file_in = "E:\DataBase\DJFPVCOMBO-22db-90db_5760m_100m_40m";
+% file_out = "E:\DataBase\DJFPVCOMBO-22db-90db_5760m_100m_40m\DJFPVCOMBO-22db-90db_5760m_100m_40m_noise";
 files = dir(fullfile(file_in,'*.dat'));
-for ii = length(files):-1:0
+for ii = length(files):-1:1
     fileName{ii} = files(ii).name;
     file_input = fullfile(file_in,fileName{ii});
     % Load data
@@ -32,9 +33,10 @@ for ii = length(files):-1:0
     % noise = 56  ---8 dB
     % noise = 54  ---6 dB
     snr_esti = 100;
-    SNR = 20;
+    SNR = 0;
     noise = SNR + 48;
-    for SNR = 20:-2:0
+    noise = -100;
+    for SNR = -2:-2:-20
         while(abs(snr_esti - SNR) > 0.05)
             if(snr_esti - SNR>0)
                 noise = noise - 0.1
