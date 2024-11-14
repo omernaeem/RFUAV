@@ -233,7 +233,7 @@ def format_data(
 
 
 def _average_precision_torch(preds: 'torch.Tensor',
-                             labels: 'torch.Tensor', average) -> 'torch.Tensor':
+                             labels: 'torch.Tensor', average=None) -> 'torch.Tensor':
     r"""Calculate the average precision for torch.
 
     AP summarizes a precision-recall curve as the weighted mean of maximum
@@ -303,14 +303,20 @@ def label_to_onehot(label: Union['torch.Tensor'], num_classes: int) -> Union['to
 
 # Usage----------------------------------------------------------------------------
 def main():
+
+    # preds is the probability distribution of each class.
     preds = torch.Tensor([[0.9, 0.8, 0.3, 0.2],
                           [0.1, 0.2, 0.2, 0.1],
                           [0.7, 0.5, 0.9, 0.3],
                           [0.8, 0.1, 0.1, 0.2]])
+
+    # labels is the class of image, also can be presented in one-hot code.
     labels = torch.Tensor([[1, 0, 0, 0],
                            [0, 1, 0, 0],
                            [0, 0, 1, 0],
-                           [1, 0, 0, 0]])
+                           [0, 0, 0, 1]])
+    labels = torch.Tensor([[0], [1], [2], [3]])
+
     average_precision = AveragePrecision()
     print(average_precision(preds, labels))
 

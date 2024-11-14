@@ -7,7 +7,6 @@
 import cv2
 import albumentations as A
 import os
-import logging
 
 
 """Augmentations for image data augmentation
@@ -112,6 +111,7 @@ def show_image(image):
     cv2.destroyAllWindows()
 
 
+# Usage---------------------------------------------------------------------------------------------------------------
 def main():
     data_path = "E:/Dataset_log/drone_thesis_classification_v2/"
     output_path = "E:/Drone_dataset/RFUAV/augmentation_exp2/"
