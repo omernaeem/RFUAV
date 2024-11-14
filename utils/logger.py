@@ -5,37 +5,41 @@ from colorama import Fore, Style, init
 class colorful_logger:
 
     def __init__(self, name, logfile=None):
-
         self.name = name
-
         init(autoreset=True)
 
         self.logger = logging.getLogger(name)
-        self.logger.setLevel(logging.INFO)
 
-        handler = logging.StreamHandler()
-
+        # 不带颜色的日志格式
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(message)s')
 
-        if name == 'Train':
+        # 文件日志处理器 (不带颜色)
+        if self.name == 'Train' and logfile:
             filehandler = logging.FileHandler(logfile)
             filehandler.setLevel(logging.INFO)
             filehandler.setFormatter(formatter)
             self.logger.addHandler(filehandler)
 
-        handler.setFormatter(formatter)
+        self.logger.setLevel(logging.INFO)
 
-        self.logger.addHandler(handler)
+        if self.name != 'Train':
+            handler = logging.StreamHandler()
+            handler.setFormatter(formatter)
+            self.logger.addHandler(handler)
 
     def log_with_color(self, message=None, color=Fore.WHITE):
+
         if self.name == 'Evaluate':
             color = Fore.CYAN
-        elif self.name == 'Train':
-            color = Fore.GREEN
         elif self.name == 'Inference':
             color = Fore.MAGENTA
 
-        colored_message = f"{color}{message}{Style.RESET_ALL}"
+        if self.name == 'Train':
+            colored_message = message
+        else:
+            colored_message = f"{color}{message}{Style.RESET_ALL}"
+
+        # 控制台输出带颜色的日志
         self.logger.info(colored_message)
 
 
