@@ -9,10 +9,11 @@ import logging
 import torch
 from typing import Any, Dict, List, Optional
 from torch import Tensor
-from ..logger import colorful_logger
+from utils.logger import colorful_logger
+
 
 class BaseMetric(metaclass=ABCMeta):
-    """Base class for metric. original: https://github.com/open-mmlab/mmeval
+    """Base class for f1, topk, confusionmatrix, precision metric. original: https://github.com/open-mmlab/mmeval
 
     To implement a metric, you should implement a subclass of ``BaseMetric``
     that overrides the ``add`` and ``compute_metric`` methods. ``BaseMetric``
@@ -95,70 +96,76 @@ class EVAMetric:
     def __new__(self,
                 preds: Tensor,
                 labels: Tensor,
-                tasks=None,
+                tasks: tuple[str, ...] = ('f1', 'precision', 'CM'),
                 num_classes: Optional[int] = None,
                 topk: tuple[int, ...] = None,
                 save_path: Optional[str] = None,
-                classes_name: Optional[tuple[str]] = None,):
+                classes_name: Optional[tuple[str, ...]] = None,):
 
-        if tasks is None:
-            tasks = ['f1', 'precision', 'CM']
-        self.logger = self.set_logger
+        logger = colorful_logger('Evaluate')
         res = {}
 
         for task in tasks:
 
             if task == 'f1':
-                from f1 import F1Score
+                from .f1 import F1Score
+                logger.log_with_color('start computing the f1')
                 _preds = []
                 for _ in preds:
                     _preds.append(_.argmax())
-                preds = [torch.tensor(_preds)]
+                _preds = [torch.tensor(_preds)]
+                _labels = [labels]
                 f1 = F1Score(num_classes=num_classes, mode=['macro', 'micro'])
-                for pred, label in zip(preds, labels):
+                for pred, label in zip(_preds, _labels):
                     f1.add([pred], [label])
 
                 res['f1'] = f1.compute_metric(f1._results)
 
-            # ToDo
-            if task == 'precision':
-                from precision import AveragePrecision
+            elif task == 'precision':
+                _labels = labels.unsqueeze(1)
+                logger.log_with_color('start computing the precision')
+                from .precision import AveragePrecision
                 ap = AveragePrecision()
                 res['mAP'] = ap(preds, labels)
 
-            if task == 'CM':
-                from confusionmatrix import ConfusionMatrix
+            elif task == 'CM':
+                logger.log_with_color('start plotting the confusion matrix')
+                from .confusionmatrix import ConfusionMatrix
                 cm = ConfusionMatrix(nc=5)
                 cm.process_cls_preds(preds, labels)
                 for _ in True, False:
                     cm.plot(normalize=_, save_dir=save_path, names=classes_name)
 
         from topk import Accuracy
+        logger.log_with_color('start computing the Top-k')
         acc = Accuracy(topk=(1, 2, 3))
         res['Top-k'] = acc(preds, labels)
 
         return res
 
-    @property
-    def set_logger(self):
-        logger = colorful_logger('Evaluate')
-        return logger
-
 
 # Usage-------------------------------------
 def main():
-    preds = torch.tensor([[0, 0.9, 0.8, 0.3, 0.6],
-                         [0, 0.9, 0.8, 0.7, 0.6],
-                         [0, 0.9, 0.8, 0.7, 0.5],
-                         [0, 0.9, 0.8, 0.1, 0.6],
-                         [0, 0.9, 0.8, 0.7, 0.4]])
-    labels = torch.tensor([1, 3, 4, 1, 2])
-    metric = EVAMetric(num_classes=5,
-                       task=['f1', 'precision'],
-                       topk=(1, 3, 5))
+    num_images = 100
+    num_classes = 5
+    save_path = 'E:/Drone_dataset/RFUAV/darw_test/'
+    classes_name = ('A', 'B', 'C', 'D', 'E')
+
+    preds = torch.rand(num_images, num_classes)
+    preds = preds / preds.sum(dim=1, keepdim=True)
+
+    labels = torch.randint(0, num_classes, (num_images,))
+
+    metric = EVAMetric(preds=preds,
+                       labels=labels,
+                       num_classes=5,
+                       tasks=('f1', 'precision', 'CM'),
+                       topk=(1, 3, 5),
+                       save_path=save_path,
+                       classes_name=classes_name)
+
+    print(metric)
     # {'precision': 33.3333, 'recall': 16.6667, 'f1-score': 22.2222}
-    metric = EVAMetric(task="multilabel", average='micro', num_classes=3)
-    metric(preds, labels)
     # {'precision_micro': 25.0, 'recall_micro': 25.0, 'f1-score_micro': 25.0}
 
 
