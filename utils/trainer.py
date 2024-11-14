@@ -7,10 +7,34 @@ import torch.optim as optim
 import os
 import logging
 import yaml
-from build import build_from_cfg, check_cfg
+from utils.build import build_from_cfg, check_cfg
+import matplot as plt
+import numpy as np
+from logger import colorful_logger
+import cv2
 
 
 class Basetrainer:
+    """Usage
+    model = Basetrainer(model(str) = 'resnet152',
+                        train_path(str) = '',
+                        val_path(str) = '',
+                        weight_path(str) = '',
+                        image_size(int) = 224,
+                        save_path(str) = '',
+                        batch_size(int) = 32,
+                        num_class(int) = 23,
+                        device(str) = 'cuda'/'cpu',
+                        shuffle(bool) = False,
+                        log_file(str) = ''
+                        lr(float) = 0.0001)
+    model.train(num_epochs=50)
+    the network we support have:
+    "resnet18", "resnet34", "resnet50", "resnet101", "resnet152",
+    "vit_b_16", "vit_b_32", "vit_l_16", "vit_l_32", "vit_h_14",
+    "swin_v2_t", "swin_v2_s", "swin_v2_b", "mobilenet_v3_small"
+    "mobilenet_v3_large", provided by torch.nn
+    """
     def __init__(self,
                  model: str,
                  train_path: str,
@@ -25,6 +49,7 @@ class Basetrainer:
                  batch_size: int = 8,
                  shuffle: bool = False,
                  image_size: int = 224,
+                 lr: float = 0.0001
                  ):
 
         self.batch_size = batch_size
@@ -37,89 +62,85 @@ class Basetrainer:
         self.best_epoch = 0
         self.best_model = None
         self.device = torch.device(device if torch.cuda.is_available() else "cpu")
+        self.lr = lr
         self.logger = self.set_logger(os.path.join(save_path, log_file))
-        self.criterion = criterion  # initalizeing the loss function
-        self.set_up(model=model, train_path=train_path, val_path=val_path, pretrained=pretrained,
-                    weight_path=weight_path)
+        self.criterion = criterion  # initializing the loss function
+        self.set_up(model=model, train_path=train_path, val_path=val_path,
+                    pretrained=pretrained, weight_path=weight_path)
 
     def set_up(self, train_path, val_path, pretrained, weight_path, model='resnet18'):
-        """
-         Set up the training environment.
-         """
 
-        self.logger.info(f"Loading model: {model}")
+        self.logger.log_with_color(f"Loading model: {model}")
 
         if os.path.exists(weight_path):
             pretrained = False
 
         if not os.path.exists(pretrained):
-            self.logger.info("Pretrained model not found, using default weight")
+            self.logger.log_with_color("Pretrained model not found, using default weight")
             pretrained = True
 
         self.model = model_init_(model_name=model, num_class=self.num_class, pretrained=pretrained)
-        # resnet serise model
 
         if os.path.exists(weight_path):
             self.load_pretrained_weights(weight_path)
-            self.logger.info(f"Loading pretrained weights from: {weight_path}")
+            self.logger.log_with_color(f"Loading pretrained weights from: {weight_path}")
 
         self.model.to(self.device)
-        self.logger.info(f"{model} loaded onto device: {self.device}")
+        self.logger.log_with_color(f"{model} loaded onto device: {self.device}")
 
         # initializing the dataset
-        self.logger.info(f"Loading dataset from: {train_path} and {val_path}")
+        self.logger.log_with_color(f"Loading dataset from: {train_path} and {val_path}")
         _train_set = datasets.ImageFolder(root=train_path, transform=transforms.Compose([
             transforms.Resize((self.image_size, self.image_size)),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ]))
+
         self.train_set = DataLoader(_train_set, batch_size=self.batch_size, shuffle=self.shuffle)
 
         _val_set = datasets.ImageFolder(root=val_path, transform=transforms.Compose([
             transforms.Resize((self.image_size, self.image_size)),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ]))
         self.val_set = DataLoader(_val_set, batch_size=self.batch_size, shuffle=self.shuffle)
 
         # initializing optimizer
-        self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
 
     def train(self, num_epochs):
         for epoch in range(num_epochs):
-            self.logger.info(f"Epoch [{epoch + 1}/{num_epochs}] started.")
-            self.model.train()  # 将模型设置为训练模式
+            self.logger.log_with_color(f"Epoch [{epoch + 1}/{num_epochs}] started.")
+            self.model.train()
             running_loss = 0.0
             correct = 0
             total = 0
             for images, labels in self.train_set:
                 images, labels = images.to(self.device), labels.to(self.device)
-                # 清除之前的梯度
                 self.optimizer.zero_grad()
 
-                # 前向传播
+                # forward
                 outputs = self.model(images)
                 loss = self.criterion(outputs, labels)
 
-                # 反向传播并优化
+                # backward
                 loss.backward()
                 self.optimizer.step()
 
-                # 统计训练过程中的损失和准确率
+                # acc & loss
                 running_loss += loss.item()
                 _, predicted = outputs.max(1)
                 total += labels.size(0)
                 correct += predicted.eq(labels).sum().item()
             train_loss = running_loss / len(self.train_set)
             train_acc = 100 * correct / total
-            self.logger.info(
+            self.logger.log_with_color(
                 f'Epoch [{epoch + 1}/{num_epochs}], Train Loss: {train_loss:.4f}, Train Accuracy: {train_acc:.2f}%')
-            val_acc, val_loss = self.val()
-            self.logger.info(f'Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_acc:.2f}%')
+            val_acc, val_loss = self.val
+            self.logger.log_with_color(f'Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_acc:.2f}%')
             self.save_model(val_acc, epoch)
 
+    @property
     def val(self):
-        self.logger.info("Starting validation...")
+        self.logger.log_with_color("Starting validation...")
         self.model.eval()
         val_loss = 0.0
         val_correct = 0
@@ -138,9 +159,8 @@ class Basetrainer:
         """
         Save the model after each epoch and track the best model based on validation accuracy.
         """
-
         checkpoint_path = os.path.join(self.save_path, f'{self.model._get_name()}_epoch_{epoch + 1}.pth')
-        self.logger.info(f'Model saved at {checkpoint_path} (Validation Accuracy: {val_acc:.2f}%)')
+        self.logger.log_with_color(f'Model saved at {checkpoint_path} (Validation Accuracy: {val_acc:.2f}%)')
         torch.save(self.model.state_dict(), checkpoint_path)
 
         # Save the best model if current validation accuracy is higher than the best recorded one
@@ -149,53 +169,27 @@ class Basetrainer:
             self.best_model = self.model.state_dict()
             best_model_path = os.path.join(self.save_path, 'best_model.pth')
             torch.save(self.best_model, best_model_path)
-            self.logger.info(f'New best model saved with Accuracy: {val_acc:.2f}%')
+            self.logger.log_with_color(f'New best model saved with Accuracy: {val_acc:.2f}%')
 
     def set_logger(self, log_file):
-        """
-        Set up the logger to output to both console and a log file.
-        """
 
-        # Create a logger
-        logger = logging.getLogger("TrainerLogger")
-        logger.setLevel(logging.INFO)
-
-        # Create console handler and set level to debug
-        ch = logging.StreamHandler()
-        ch.setLevel(logging.INFO)
-
-        # Create file handler and set level to info
-        fh = logging.FileHandler(log_file)
-        fh.setLevel(logging.INFO)
-
-        # Create formatter
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-
-        # Add formatter to handlers
-        ch.setFormatter(formatter)
-        fh.setFormatter(formatter)
-
-        # Add handlers to logger
-        logger.addHandler(ch)
-        logger.addHandler(fh)
-
+        logger = colorful_logger('Train')
         return logger
 
     def load_pretrained_weights(self, weight_path: str):
-        """
-        Load pretrained weights from the given path if the file exists.
-        """
+
         if os.path.exists(weight_path):
-            self.logger.info(f"Loading pretrained weights from: {weight_path}")
+            self.logger.log_with_color(f"Loading pretrained weights from: {weight_path}")
             state_dict = torch.load(weight_path, map_location=self.device)
             self.model.load_state_dict(state_dict)
-            self.logger.info(f"Successfully loaded pretrained weights from: {weight_path}")
+            self.logger.log_with_color(f"Successfully loaded pretrained weights from: {weight_path}")
         else:
-            self.logger.warning(f"Pretrained weights file not found at: {weight_path}. Skipping weight loading.")
+            self.logger.log_with_color(f"Pretrained weights file not found at: {weight_path}. Skipping weight loading.")
 
 
 def model_init_(model_name, num_class, pretrained=True):
-    # resnet serise model
+
+    # resnet series model
     if model_name == 'resnet18':
         model = models.resnet18(pretrained=pretrained)
         model.fc = nn.Linear(model.fc.in_features, num_class)
@@ -212,7 +206,7 @@ def model_init_(model_name, num_class, pretrained=True):
         model = models.resnet152(pretrained=pretrained)
         model.fc = nn.Linear(model.fc.in_features, num_class)
 
-    # ViT serise model
+    # ViT series model
     elif model_name == "vit_b_16":
         model = models.vit_b_16(pretrained=pretrained)
         model.heads.head = nn.Linear(model.heads.head.in_features, num_class)
@@ -229,7 +223,7 @@ def model_init_(model_name, num_class, pretrained=True):
         model = models.vit_h_14(pretrained=pretrained)
         model.heads.head = nn.Linear(model.heads.head.in_features, num_class)
 
-    # SiwnTrans serise mdoel
+    # SiwnTrans series model
     elif model_name == "swin_v2_t":
         model = models.swin_v2_t(pretrained=pretrained)
         model.head = nn.Linear(model.head.in_features, num_class)
@@ -240,7 +234,7 @@ def model_init_(model_name, num_class, pretrained=True):
         model = models.swin_v2_b(pretrained=pretrained)
         model.head = nn.Linear(model.head.in_features, num_class)
 
-    # Mobilnet serise model
+    # Mobilenet series model
     elif model_name == "mobilenet_v3_large":
         model = models.mobilenet_v3_large(pretrained=pretrained)
         model.classifier = nn.Linear(model.classifier.in_features, num_class)
@@ -270,37 +264,64 @@ class CustomTrainer(Basetrainer):
                 weight_path=self.parameters['weights'],
                 device=self.parameters['device'],
                 batch_size=self.parameters['batch_size'],
+                shuffle=self.parameters['shuffle'],
+                image_size=self.parameters['image_size'],
+                lr=self.parameters['lr'],
             )
         else:
             super().__init__(Basetrainer)
 
         self.class_idx = self.train_set.dataset.class_to_idx
-        self.save_yaml()
+        if self.save_yaml:
+            self.logger.log_with_color(f"Saving yaml file at {self.parameters['save_path']}")
 
+    @property
     def save_yaml(self):
-        """
-        把训练中使用的一些预设参数:preprocessing使用的方法，和一些基础的训练信息写到yaml中，给inference用
-        :return:
-        """
+
         self.parameters['class_names'] = self.class_idx
         with open(os.path.join(self.save_path, 'config.yaml'), 'w', encoding='utf-8') as file:
             yaml.dump(self.parameters, file, allow_unicode=True)
-"""Usage
-model = Basetrainer(model='resnet152',
-                    train_path='E:/Dataset_log/leaf_test/train/',
-                    val_path='E:/Dataset_log/leaf_test/valid/',
-                    weight_path='',
-                    image_size=224,
-                    save_path='E:/Train_log/Drone_thesis/Classification/ResNet152/exp4_codecheck/',
-                    batch_size=10,
-                    num_class=23,
-                    device='cuda')
-model.train(num_epochs=150)
-"""
+        return True
 
-def main():
-    model = CustomTrainer(cfg='../configs/sample.yaml')
+    @property
+    def train(self):
+        num_epochs = self.parameters['num_epochs']
+
+        for epoch in range(num_epochs):
+            self.logger.log_with_color(f"Epoch [{epoch + 1}/{num_epochs}] started.")
+            self.model.train()
+            running_loss = 0.0
+            correct = 0
+            total = 0
+            for images, labels in self.train_set:
+                images, labels = images.to(self.device), labels.to(self.device)
+                self.optimizer.zero_grad()
+
+                # forward propagation
+                outputs = self.model(images)
+                loss = self.criterion(outputs, labels)
+
+                # backward propagation
+                loss.backward()
+                self.optimizer.step()
+
+                # acc & loss
+                running_loss += loss.item()
+                _, predicted = outputs.max(1)
+                total += labels.size(0)
+                correct += predicted.eq(labels).sum().item()
+            train_loss = running_loss / len(self.train_set)
+            train_acc = 100 * correct / total
+            self.logger.log_with_color(
+                f'Epoch [{epoch + 1}/{num_epochs}], Train Loss: {train_loss:.4f}, Train Accuracy: {train_acc:.2f}%')
+            val_acc, val_loss = self.val
+            self.logger.log_with_color(f'Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_acc:.2f}%')
+            self.save_model(val_acc, epoch)
 
 
-if __name__ == '__main__':
-    main()
+# for test--------------------------------------------------------------------------------------------------------------
+def show_img_in_dataloader(images):
+    """Imshow for Tensor."""
+    images = images.numpy().transpose((1, 2, 0))
+    cv2.imshow('test', images)
+    cv2.waitKey(0)

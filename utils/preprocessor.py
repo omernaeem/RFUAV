@@ -92,15 +92,16 @@ def data_augmentation(dataset_path: str = None,
             for method in methods:
 
                 for image in images:
-                    original_image = cv2.cvtColor(cv2.imread(os.path.join(path_image, image)), cv2.COLOR_BGR2RGB)
+                    original_image = cv2.imread(os.path.join(path_image, image))
+                    # original_image = cv2.cvtColor(cv2.imread(os.path.join(path_image, image)), cv2.COLOR_BGR2RGB)
+                    # show_image(original_image)
                     transform = A.Compose(method)
                     augmented = transform(image=original_image)
                     cv2.imwrite(os.path.join(_save_path, image+'_AugM'+str(i)+os.path.splitext(image)[1]), augmented['image'])
                     cv2.imwrite(os.path.join(_save_path, image+'_origin'+os.path.splitext(image)[1]), original_image)
                 i += 1
 
-            logging.info(f"Finished augmentation of {_class}")
-
+            print(f"Finished augmentation of {_class}")
 
 
 def show_image(image):
