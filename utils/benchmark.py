@@ -3,17 +3,24 @@ import torch.nn as nn
 from utils.trainer import model_init_
 from utils.build import check_cfg, build_from_cfg
 import os
-import logging
 import glob
-from torchvision import transforms
+from torchvision import transforms, datasets
 from PIL import Image, ImageDraw, ImageFont
 import time
 from graphic.RawDataProcessor import generate_images
 import imageio
 from logger import colorful_logger
+import sys
+from .metrics.base_metric import EVAMetric
+from torch.utils.data import DataLoader
+
 
 image_ext = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff']
 raw_data_ext = ['.iq', '.dat']
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+METRIC = os.path.join(current_dir, './metrics')
+sys.path.append(METRIC)
 
 
 class Model(nn.Module):
@@ -124,7 +131,8 @@ class Model(nn.Module):
         end_time = time.time()
         self.logger.log_with_color(f"Inference time: {(end_time-start_time)/100 :.8f} sec")
         self.logger.log_with_color(f"{source} contains Drone: {predicted_class_name}, "
-                         f"confidence: {probabilities[0][predicted_class_index].item()*100 :.2f} %, start saving result")
+                                   f"confidence: {probabilities[0][predicted_class_index].item()*100 :.2f} %,"
+                                   f" start saving result")
 
         if self.save:
             res = self.add_result(res=predicted_class_name,
@@ -157,9 +165,7 @@ class Model(nn.Module):
                                   image=image)
             res.append(_)
 
-        imageio.mimsave(os.path.join(self.save_path, name+'.mp4'), res, fps=5)
-
-
+        imageio.mimsave(os.path.join(self.save_path, name + '.mp4'), res, fps=5)
 
     def add_result(self,
                    res,
@@ -205,6 +211,45 @@ class Model(nn.Module):
         :param data_path:
         :return:
         """
+        self.model.eval()
+        _dataset = datasets.ImageFolder(root=data_path, transform=transforms.Compose([
+            transforms.Resize((self.cfg['image_size'], self.cfg['image_size'])),
+            transforms.ToTensor(),
+        ]))
+        dataset = DataLoader(_dataset, batch_size=self.cfg['batch_size'], shuffle=self.cfg['shuffle'])
+        self.logger.log_with_color("Starting Benchmarking...")
+
+        loss = 0.0
+        correct = 0
+        total = 0
+        probabilities = []
+        total_labels = []
+        classes_name = tuple(self.cfg['class_names'].keys())
+
+        for images, labels in dataset:
+            images, labels = images.to(self.cfg['device']), labels.to(self.cfg['device'])
+            outputs = self.model(images)
+            for output in outputs:
+                probabilities.append(list(torch.softmax(output, dim=0)))
+            loss += nn.CrossEntropyLoss(outputs, labels).item()
+            _, predicted = outputs.max(1)
+            total += labels.size(0)
+            correct += predicted.eq(labels).sum().item()
+            total_labels.append(labels)
+        _total_labels = torch.concat(total_labels, dim=0)
+        _probabilities = torch.tensor(probabilities)
+
+        metrics = EVAMetric(preds=_probabilities.to(self.cfg['device']),
+                            labels=_total_labels,
+                            num_classes=self.cfg['num_classes'],
+                            tasks=('f1', 'precision', 'CM'),
+                            topk=(1, 3, 5),
+                            save_path=data_path,
+                            classes_name=classes_name)
+
+        metrics['acc'] = 100 * correct / total
+        metrics['total_loss'] = loss / len(dataset)
+        return metrics
 
 
 def is_valid_file(path, total_ext):
