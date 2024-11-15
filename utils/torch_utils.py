@@ -11,6 +11,7 @@ import warnings
 from contextlib import contextmanager
 from copy import deepcopy
 from pathlib import Path
+import logging
 
 import torch
 import torch.distributed as dist
@@ -18,7 +19,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-from utils.general import LOGGER, check_version, colorstr, file_date, git_describe
 
 LOCAL_RANK = int(os.getenv('LOCAL_RANK', -1))  # https://pytorch.org/docs/stable/elastic/run.html
 RANK = int(os.getenv('RANK', -1))
@@ -32,34 +32,6 @@ except ImportError:
 # Suppress PyTorch warnings
 warnings.filterwarnings('ignore', message='User provided device_type of \'cuda\', but CUDA is not available. Disabling')
 warnings.filterwarnings('ignore', category=UserWarning)
-
-
-def smart_inference_mode(torch_1_9=check_version(torch.__version__, '1.9.0')):
-    # Applies torch.inference_mode() decorator if torch>=1.9.0 else torch.no_grad() decorator
-    def decorate(fn):
-        return (torch.inference_mode if torch_1_9 else torch.no_grad)()(fn)
-
-    return decorate
-
-
-def smartCrossEntropyLoss(label_smoothing=0.0):
-    # Returns nn.CrossEntropyLoss with label smoothing enabled for torch>=1.10.0
-    if check_version(torch.__version__, '1.10.0'):
-        return nn.CrossEntropyLoss(label_smoothing=label_smoothing)
-    if label_smoothing > 0:
-        LOGGER.warning(f'WARNING ⚠️ label smoothing {label_smoothing} requires torch>=1.10.0')
-    return nn.CrossEntropyLoss()
-
-
-def smart_DDP(model):
-    # Model DDP creation with checks
-    assert not check_version(torch.__version__, '1.12.0', pinned=True), \
-        'torch==1.12.0 torchvision==0.13.0 DDP training is not supported due to a known issue. ' \
-        'Please upgrade or downgrade torch to use DDP. See https://github.com/ultralytics/yolov5/issues/8395'
-    if check_version(torch.__version__, '1.11.0'):
-        return DDP(model, device_ids=[LOCAL_RANK], output_device=LOCAL_RANK, static_graph=True)
-    else:
-        return DDP(model, device_ids=[LOCAL_RANK], output_device=LOCAL_RANK)
 
 
 def reshape_classifier_output(model, n=1000):
@@ -82,84 +54,6 @@ def reshape_classifier_output(model, n=1000):
             i = types.index(nn.Conv2d)  # nn.Conv2d index
             if m[i].out_channels != n:
                 m[i] = nn.Conv2d(m[i].in_channels, n, m[i].kernel_size, m[i].stride, bias=m[i].bias is not None)
-
-
-@contextmanager
-def torch_distributed_zero_first(local_rank: int):
-    # Decorator to make all processes in distributed training wait for each local_master to do something
-    if local_rank not in [-1, 0]:
-        dist.barrier(device_ids=[local_rank])
-    yield
-    if local_rank == 0:
-        dist.barrier(device_ids=[0])
-
-
-def device_count():
-    # Returns number of CUDA devices available. Safe version of torch.cuda.device_count(). Supports Linux and Windows
-    assert platform.system() in ('Linux', 'Windows'), 'device_count() only supported on Linux or Windows'
-    try:
-        cmd = 'nvidia-smi -L | wc -l' if platform.system() == 'Linux' else 'nvidia-smi -L | find /c /v ""'  # Windows
-        return int(subprocess.run(cmd, shell=True, capture_output=True, check=True).stdout.decode().split()[-1])
-    except Exception:
-        return 0
-
-
-def time_sync():
-    # PyTorch-accurate time
-    if torch.cuda.is_available():
-        torch.cuda.synchronize()
-    return time.time()
-
-
-def profile(input, ops, n=10, device=None):
-    """ YOLOv5 speed/memory/FLOPs profiler
-    Usage:
-        input = torch.randn(16, 3, 640, 640)
-        m1 = lambda x: x * torch.sigmoid(x)
-        m2 = nn.SiLU()
-        profile(input, [m1, m2], n=100)  # profile over 100 iterations
-    """
-    results = []
-    if not isinstance(device, torch.device):
-        device = select_device(device)
-    print(f"{'Params':>12s}{'GFLOPs':>12s}{'GPU_mem (GB)':>14s}{'forward (ms)':>14s}{'backward (ms)':>14s}"
-          f"{'input':>24s}{'output':>24s}")
-
-    for x in input if isinstance(input, list) else [input]:
-        x = x.to(device)
-        x.requires_grad = True
-        for m in ops if isinstance(ops, list) else [ops]:
-            m = m.to(device) if hasattr(m, 'to') else m  # device
-            m = m.half() if hasattr(m, 'half') and isinstance(x, torch.Tensor) and x.dtype is torch.float16 else m
-            tf, tb, t = 0, 0, [0, 0, 0]  # dt forward, backward
-            try:
-                flops = thop.profile(m, inputs=(x,), verbose=False)[0] / 1E9 * 2  # GFLOPs
-            except Exception:
-                flops = 0
-
-            try:
-                for _ in range(n):
-                    t[0] = time_sync()
-                    y = m(x)
-                    t[1] = time_sync()
-                    try:
-                        _ = (sum(yi.sum() for yi in y) if isinstance(y, list) else y).sum().backward()
-                        t[2] = time_sync()
-                    except Exception:  # no backward method
-                        # print(e)  # for debug
-                        t[2] = float('nan')
-                    tf += (t[1] - t[0]) * 1000 / n  # ms per op forward
-                    tb += (t[2] - t[1]) * 1000 / n  # ms per op backward
-                mem = torch.cuda.memory_reserved() / 1E9 if torch.cuda.is_available() else 0  # (GB)
-                s_in, s_out = (tuple(x.shape) if isinstance(x, torch.Tensor) else 'list' for x in (x, y))  # shapes
-                p = sum(x.numel() for x in m.parameters()) if isinstance(m, nn.Module) else 0  # parameters
-                print(f'{p:12}{flops:12.4g}{mem:>14.3f}{tf:14.4g}{tb:14.4g}{str(s_in):>24s}{str(s_out):>24s}')
-                results.append([p, flops, mem, tf, tb, s_in, s_out])
-            except Exception as e:
-                print(e)
-                results.append(None)
-            torch.cuda.empty_cache()
-    return results
 
 
 def initialize_weights(model):
@@ -195,7 +89,7 @@ def prune(model, amount=0.3):
         if isinstance(m, nn.Conv2d):
             prune.l1_unstructured(m, name='weight', amount=amount)  # prune
             prune.remove(m, 'weight')  # make permanent
-    LOGGER.info(f'Model pruned to {sparsity(model):.3g} global sparsity')
+    logging.info(f'Model pruned to {sparsity(model):.3g} global sparsity')
 
 
 def fuse_conv_and_bn(conv, bn):
@@ -244,7 +138,7 @@ def model_info(model, verbose=False, imgsz=640):
         fs = ''
 
     name = Path(model.yaml_file).stem.replace('yolov5', 'YOLOv5') if hasattr(model, 'yaml_file') else 'Model'
-    LOGGER.info(f'{name} summary: {len(list(model.modules()))} layers, {n_p} parameters, {n_g} gradients{fs}')
+    logging.info(f'{name} summary: {len(list(model.modules()))} layers, {n_p} parameters, {n_g} gradients{fs}')
 
 
 def scale_img(img, ratio=1.0, same_shape=False, gs=32):  # img(16,3,256,416)
@@ -275,39 +169,8 @@ class EarlyStopping:
         self.possible_stop = delta >= (self.patience - 1)  # possible stop may occur next epoch
         stop = delta >= self.patience  # stop training if patience exceeded
         if stop:
-            LOGGER.info(f'Stopping training early as no improvement observed in last {self.patience} epochs. '
+            logging.info(f'Stopping training early as no improvement observed in last {self.patience} epochs. '
                         f'Best results observed at epoch {self.best_epoch}, best model saved as best.pt.\n'
                         f'To update EarlyStopping(patience={self.patience}) pass a new patience value, '
                         f'i.e. `python train.py --patience 300` or use `--patience 0` to disable EarlyStopping.')
         return stop
-
-
-class ModelEMA:
-    """ Updated Exponential Moving Average (EMA) from https://github.com/rwightman/pytorch-image-models
-    Keeps a moving average of everything in the model state_dict (parameters and buffers)
-    For EMA details see https://www.tensorflow.org/api_docs/python/tf/train/ExponentialMovingAverage
-    """
-
-    def __init__(self, model, decay=0.9999, tau=2000, updates=0):
-        # Create EMA
-        self.ema = deepcopy(de_parallel(model)).eval()  # FP32 EMA
-        self.updates = updates  # number of EMA updates
-        self.decay = lambda x: decay * (1 - math.exp(-x / tau))  # decay exponential ramp (to help early epochs)
-        for p in self.ema.parameters():
-            p.requires_grad_(False)
-
-    def update(self, model):
-        # Update EMA parameters
-        self.updates += 1
-        d = self.decay(self.updates)
-
-        msd = de_parallel(model).state_dict()  # model state_dict
-        for k, v in self.ema.state_dict().items():
-            if v.dtype.is_floating_point:  # true for FP16 and FP32
-                v *= d
-                v += (1 - d) * msd[k].detach()
-        # assert v.dtype == msd[k].dtype == torch.float32, f'{k}: EMA {v.dtype} and model {msd[k].dtype} must be FP32'
-
-    def update_attr(self, model, include=(), exclude=('process_group', 'reducer')):
-        # Update EMA attributes
-        copy_attr(self.ema, model, include, exclude)
