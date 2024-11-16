@@ -263,7 +263,7 @@ def main():
                          Middle_Frequency=2400e6
                          )
 
-    """
+
     datapack = 'E:/Drone_dataset/RFUAV/crop_data/DJFPVCOMBO/DJFPVCOMBO-16db-90db_5760m_100m_10m/DJFPVCOMBO-16db-90db_5760m_100m_10m_0-2s.dat'
     save_path = 'E:/Drone_dataset/RFUAV/darw_test/'
     save_as_video(datapack=datapack,
@@ -287,7 +287,6 @@ def main():
                    duration_time=0.1,
                    )
     # DrawandSave()
-    """
 
 
 if __name__ == '__main__':
