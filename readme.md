@@ -5,7 +5,7 @@ This is the official repository of our XXXX paper RFUAV: RFUAV: A Benchmark Data
 <details>
 <summary>installtion</summary>
 
-    pip install -r requirements.txt
+    pip install -r requirement.txt
 
 </details>
 
@@ -84,7 +84,7 @@ For customized the training, you can create/modified a configration file ended w
             lr=0.0001,
         ).train()
 
-We provide the pipeline for the inference, you can infernce your model on spectromgram or binary raw frequency data using the following code. The inference on the binary raw frequency data will automatically packed into a video with the identification result on the spectromgram. Notice, if you want to infernce the binary raw frequency data, you should specify a weight trained by the spectromgram dataset provided by python pipeline.
+We provide the pipeline for the inference, you can inference your model on spectromgram or binary raw frequency data using the following code. The inference on the binary raw frequency data will automatically packed into a video with the identification result on the spectromgram. Notice, if you want to infernce the binary raw frequency data, you should specify a weight trained by the spectromgram dataset provided by python pipeline.
 
     test = Model(cfg='Your configration file path',
                  weight_path='Your weights path')
@@ -92,12 +92,32 @@ We provide the pipeline for the inference, you can infernce your model on spectr
     test.inference(source='Your target data path',
                    save_path='Your target save path')
 
-### 2.4 evaluate your model on the dataset
+### 2.4 Evaluate your model on the benchmark 
 
-### 2.5 Some Useful tools to help you to process the dataset
+You can evaluate your model on benchmark, and using mAP, Top-K Acc, F1, Confusion Matrix to evaluate your model. Your model will be evaluated on the -20dB-20dB data set separately, and finally a model performance at different signal-to-noise ratios will be obtained.
+
+    test = Model(cfg='Your configration file path',
+                 weight_path='Your weights path')
+
+    test.benchmark() ####
+
+### 2.5 Some useful tools to help you to process the dataset
+Based on our experimental results, we provide a ready-made image dataset, but you can also directly obtain our raw data for processing as you wish. We provide a Matlab (tool.Sep_sec.m) program tool for segmenting raw data. You can specify any packet of raw data to be segmented every 2S. The segmented data packets are smaller and easier to process.
+
+At the same time, the benchmark we use contains drone image data with different signal-to-noise ratios, but the training set we provide only contains drone image data in its original state. Directly using this training set may cause the model to perform poorly on the benchmark. Therefore, we provide a data enhancement tool (utils.preprocessor.data_augmentation) to improve the accuracy of the model.
+        
+    data_path = "Your dataset path"
+    output_path = "Your output path"
+    method = ['Aug1', 'Aug2', ...]
+    
+    data_augmentation(dataset_path=data_path,
+                      output_path=output_path,
+                      methods=method)
 
 ## 3.Notice 
-### 3.1 Dataset file Structure
+### 3.1 Raw data parameter description
+
+### 3.2 Dataset file Structure
 Your dataset file structure should be organized as follows, if you are using the provided dataloader.  
 Dataset  
 ├── train  
@@ -106,18 +126,12 @@ Dataset
 │ └── MINI4  
 │ &nbsp;&nbsp;&nbsp;&nbsp;└── imgs  
 ├── valid  
-│ ├── AVATA  
-│ │ └── imgs  
-│ └── MINI4  
-│ &nbsp;&nbsp;&nbsp;&nbsp;└── imgs  
-└── test  
-&nbsp;&nbsp;&nbsp;&nbsp;├── AVATA  
-&nbsp;&nbsp;&nbsp;&nbsp;│ └── imgs  
-&nbsp;&nbsp;&nbsp;&nbsp;└── MINI4  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── imgs  
-
+&nbsp;&nbsp;&nbsp;├── AVATA  
+&nbsp;&nbsp;&nbsp;│ └── imgs  
+&nbsp;&nbsp;&nbsp;└── MINI4  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── imgs  
 ## 4.Dataset download
 
-## 5.Some experiments results
+## 5.Experiment results
 
 ## Citation
