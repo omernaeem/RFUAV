@@ -1,3 +1,4 @@
+% 检测噪声效果
 clc;clear;
 filein = "E:\DataBase\DJFPVCOMBO-22db-90db_5760m_100m_40m\DJFPVCOMBO-22db-90db_5760m_100m_40m_0-2s-noise";
 files = dir(fullfile(filein,'*.dat'));

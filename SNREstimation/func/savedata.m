@@ -1,3 +1,4 @@
+% 根据信噪比估计结果给整个文件依次加噪声
 function [] = DoAddNoise(file_out,file_in,fileName,signal_power,noisevalue,target)
 %   此处显示详细说明
     

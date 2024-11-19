@@ -1,3 +1,4 @@
+% 信噪比估计的功能函数
 function snrEsti = snrEsti(dataIQ, fs, nfft,f1, f2,idx1,idx2,idx3,idx4)
 %% 信号位置检测
 % [f1, f2] = dronesOFDMFreqShiftEsti(dataIQ, fs, bw, nfft);

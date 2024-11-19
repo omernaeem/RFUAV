@@ -1,3 +1,4 @@
+% 寻找信号和噪声位置
 function [idx1,idx2,idx3,idx4,f1, f2] = positionFind(dataIQ, fs, bw, NFFT)
     %% 信号位置检测
     [f1, f2] = dronesOFDMFreqShiftEsti(dataIQ, fs, bw, NFFT);
