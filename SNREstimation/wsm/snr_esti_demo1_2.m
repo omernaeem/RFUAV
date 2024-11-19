@@ -10,10 +10,10 @@ fs   = 100e6;
 
 
 %% 下面三个是一定要修改的参数：符号带宽、文件名字、文件路径
-bw = 20e6;  % 信号带宽
+bw = 40e6;  % 信号带宽
 
-path = "E:\Drone_dataset\RFUAV\rawdata\DJMINI4PRO";        % 文件路径
-file = "DIMINI4PRO-17db-60db_2450m_100m_20m.iq";    % 文件名字
+path = "Z:\RFUAV\加噪\DJFPVCOMBO-28db-90db_5760m_100m_40-noise\";        % 文件路径
+file = "-20dB.dat";    % 文件名字
 
 % path = "G:\1_data_sample\Drones\DJFPVCOMBO\DJFPVCOMBO-28db-90db_5760m_100m_40m";        % 文件路径
 % file = "DJFPVCOMBO-28db-90db_5760m_100m_40m_12-14s.dat";    % 文件名字
