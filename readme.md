@@ -5,7 +5,7 @@ This is the official repository of our XXXX paper RFUAV: RFUAV: A Benchmark Data
 <details>
 <summary>installtion</summary>
 
-    pip install -r requirement.txt
+    pip install -r requirements.txt
 
 </details>
 
