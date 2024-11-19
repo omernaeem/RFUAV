@@ -1,14 +1,11 @@
-function [outputArg1,outputArg2] = DoAddNoise(file_in,fileName,signal_power,noisevalue,target)
+function [] = DoAddNoise(file_out,file_in,fileName,signal_power,noisevalue,target)
 %   此处显示详细说明
-    targetSNR = 10^(noisevalue / 10); % 将 dB 转换为线性比例
-    % 计算所需的噪声功率
-    noisePower = signal_power / targetSNR; % 计算噪声功率
     
     file = fullfile(file_in,fileName);
     fileInfo = dir(file); % 替换为你的文件名
     fileSize = fileInfo.bytes; % 获取文件大小，单位为字节
     times = fileSize /4/ 3e6;  
-    filepathOut = file_in + '\' + fileName(1:end-4) + '-noise' ;
+    filepathOut = file_out + '\' + fileName(1:end-4) + '-noise' ;
     if ~exist(filepathOut,"dir")
         mkdir(filepathOut);
     end
@@ -19,11 +16,10 @@ function [outputArg1,outputArg2] = DoAddNoise(file_in,fileName,signal_power,nois
         data = fread(fp,3e6,"float");
         fclose(fp);
         dataIQ = data(1:2:end) + 1j*data(2:2:end);
+%         dataIQ = normalize(dataIQ, "norm");
         % 生成复数白噪声
-        noise = sqrt(noisePower/2) .* (randn(size(dataIQ)) + 1j * randn(size(dataIQ))); % 生成复数白噪声
-        noisy_data = dataIQ + noise;
-        
-%     datanoise = awgn1(dataIQ,noise);
+        noisy_data = awgn1(dataIQ,noisevalue,signal_power);      
+%         xinzaobi = snrEsti(noisy_data,100e6,20e6, 409600);
         % 保存  
         if(i == 1)
             fp = fopen(filepathOut,"wb+");
