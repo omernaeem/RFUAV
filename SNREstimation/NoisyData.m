@@ -1,3 +1,4 @@
+% 全局main(),先估计再加噪
 clc;
 clear;
 close all;

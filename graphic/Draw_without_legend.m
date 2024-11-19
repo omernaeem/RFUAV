@@ -1,3 +1,4 @@
+% 画不带坐标轴的图片
 %% 多种频率分辨率以及颜色映射画图
 clc;clear;close all;
 fs = 100e6;                     % 输入采样率
@@ -6,7 +7,7 @@ time_sec = 0.1;                   % 需要的分割时间/s
 dataform = 'float32';           % 输入的数据类型
 byte_per = 4;                   % 该数据类型占字节数
 datalength = time_sec*fs*byte_per*2;       % 读取数据的长度，单位是字节(时间*采样率*每个数据占字节*iq)
-file_in ="Z:\RFUAV\加噪\DJMAVIC3PRO-16db-90db_5800m_100m_20-noise";% 输入路径
+file_in ="Z:\RFUAV\加噪\DIMINI4PRO-17db-60db_2450m_100m_20-noise";% 输入路径
 % 获取文件夹内所有iq/dat文件
 files_dat = dir(fullfile(file_in, '*.dat'));
 files_iq = dir(fullfile(file_in, '*.iq'));
@@ -23,8 +24,7 @@ for ii = 1:length(files)
             break; % 找到第一个 '-' 后退出循环
         end
     end
-%     filepathOut = "E:\Drone_dataset\RFUAV\augmentation_exp1_MethodSelect\images\Matlab";
-    filepathOut = "E:\DataBase\stftFig";
+    filepathOut = "E:\Drone_dataset\RFUAV\augmentation_exp1_MethodSelect\images\Matlab";
     filepathOut_get = filepathOut + '\' + path + '\' + fileName{ii}(1:end-4);
     color = ["parula","hsv","hot","autumn"];
     % 读取文件,获取大小
@@ -60,7 +60,6 @@ for ii = 1:length(files)
                 % 保存图像为 2400x1800 像素
                 set(gcf, 'Units', 'inches', 'Position', [0, 0, 4, 3]); % 调整图像窗口大小
                 print(gcf, newFile, '-dpng', '-r300');
-                toc
                 clf;
             end
         end
