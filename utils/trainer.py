@@ -1,3 +1,6 @@
+"""
+The base trainer class `Basetrainer` and a custom trainer class `CustomTrainer` for training and validating image classification models.
+"""
 from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 import torch
@@ -20,25 +23,26 @@ sys.path.append(METRIC)
 
 
 class Basetrainer:
-    """Usage
-    model = Basetrainer(model(str) = 'resnet152',
-                        train_path(str) = '',
-                        val_path(str) = '',
-                        weight_path(str) = '',
-                        image_size(int) = 224,
-                        save_path(str) = '',
-                        batch_size(int) = 32,
-                        num_class(int) = 23,
-                        device(str) = 'cuda'/'cpu',
-                        shuffle(bool) = False,
-                        log_file(str) = ''
-                        lr(float) = 0.0001)
-    model.train(num_epochs=50)
-    the network we support have:
-    "resnet18", "resnet34", "resnet50", "resnet101", "resnet152",
-    "vit_b_16", "vit_b_32", "vit_l_16", "vit_l_32", "vit_h_14",
-    "swin_v2_t", "swin_v2_s", "swin_v2_b", "mobilenet_v3_small"
-    "mobilenet_v3_large", provided by torch.nn
+    """
+    Base trainer class for initializing the model, dataset, optimizer, and performing training and validation.
+
+    Parameters:
+    - model (str): Model name, supported models include "resnet18", "resnet34", "resnet50", "resnet101", "resnet152",
+                  "vit_b_16", "vit_b_32", "vit_l_16", "vit_l_32", "vit_h_14",
+                  "swin_v2_t", "swin_v2_s", "swin_v2_b", "mobilenet_v3_small", "mobilenet_v3_large"
+    - train_path (str): Path to the training dataset
+    - val_path (str): Path to the validation dataset
+    - num_class (int): Number of classes
+    - save_path (str): Path to save the model
+    - weight_path (str, optional): Path to pre-trained weights, default is None
+    - log_file (str, optional): Path to the log file, default is "train.log"
+    - device (str, optional): Device to use, "cuda" or "cpu", default is "cuda"
+    - criterion (torch.nn.Module, optional): Loss function, default is `nn.CrossEntropyLoss()`
+    - pretrained (bool, optional): Whether to use pre-trained model, default is `True`
+    - batch_size (int, optional): Batch size, default is 8
+    - shuffle (bool, optional): Whether to shuffle the data, default is `False`
+    - image_size (int, optional): Image size, default is 224
+    - lr (float, optional): Learning rate, default is 0.0001
     """
     def __init__(self,
                  model: str,
@@ -74,6 +78,16 @@ class Basetrainer:
                     pretrained=pretrained, weight_path=weight_path)
 
     def set_up(self, train_path, val_path, pretrained, weight_path, model='resnet18'):
+        """
+        Initialize the model, dataset, and optimizer.
+
+        Parameters:
+        - train_path (str): Path to the training dataset
+        - val_path (str): Path to the validation dataset
+        - pretrained (bool): Whether to use pre-trained model
+        - weight_path (str): Path to pre-trained weights
+        - model (str): Model name, default is "resnet18"
+        """
 
         self.logger.log_with_color(f"Loading model: {model}")
 
@@ -195,6 +209,15 @@ class Basetrainer:
             self.logger.log_with_color(f'New best model saved with Accuracy: {val_acc:.2f}%')
 
     def set_logger(self, log_file):
+        """
+        Set up the logger.
+
+        Parameters:
+        - log_file (str): Path to the log file
+
+        Returns:
+        - logger (colorful_logger): Logger object
+        """
 
         logger = colorful_logger(name='Train', logfile=log_file)
         return logger
@@ -211,6 +234,17 @@ class Basetrainer:
 
 
 def model_init_(model_name, num_class, pretrained=True):
+    """
+    Initialize the model.
+
+    Parameters:
+    - model_name (str): Model name
+    - num_class (int): Number of classes
+    - pretrained (bool, optional): Whether to use pre-trained model, default is `True`
+
+    Returns:
+    - model (torch.nn.Module): Initialized model
+    """
 
     # resnet series model
     if model_name == 'resnet18':
@@ -272,6 +306,13 @@ def model_init_(model_name, num_class, pretrained=True):
 
 
 class CustomTrainer(Basetrainer):
+    """
+    Custom trainer class that extends the `Basetrainer` class. It initializes the trainer with configuration parameters
+    and provides additional functionality.
+
+    Parameters:
+    - cfg (str): Configuration file path
+    """
 
     def __init__(self,
                  cfg: str,

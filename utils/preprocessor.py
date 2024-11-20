@@ -1,7 +1,16 @@
-"""模型预处理方法:
-1.给dataloader的预处理器 a.输入模型数据进行符合尺度的裁剪.
-2.数据集用的数据增强方法.
-3.原始数据的处理方法 a.加噪 b.复杂环境融合 c.滤波
+"""Augmentations for image data augmentation
+All the augmentations methods are provided by albumentations: https://github.com/albumentations-team/albumentations
+
+Args:
+    dataset_path (str): The file path of the dataset.
+    methods (list[str], optional): The augmentation methods to apply. Default methods include:
+        1. AdvancedBlur
+        2. CLAHE
+        3. ColorJitter
+        4. GaussNoise
+        5. ISONoise
+        6. Sharpen
+    output_path (str, optional): The path where the augmented dataset will be saved. If not specified, a new directory named `dataset_aug` will be created in the same directory as the dataset.
 """
 
 import cv2
@@ -9,23 +18,20 @@ import albumentations as A
 import os
 
 
-"""Augmentations for image data augmentation
-All the augmentations methods are provided by albumentations: https://github.com/albumentations-team/albumentations
-
-arg: 
-    dataset_path(str): the file path of dataset
-    methods(list[str]): the augmentation method, 
-    default method using: 1.AdvancedBlur, 2.CLAHE, 3.ColorJitter, 4.GaussNoise, 5.ISONoise, 6.Sharpen
-    you can find all the method in https://albumentations.ai/docs/api_reference/full_reference/.
-    output_path(str)(optional): The augmented dataset will be saved here, if you are specialized.
-     if the output is not specialized, function will create a new dir dataset_aug to store the new dataset in 
-     the data_path
-"""
-
-
 def data_augmentation(dataset_path: str = None,
                       output_path: str = None,
                       methods: list[str] = None):
+    """
+    Perform data augmentation on the given dataset using specified methods.
+
+    Args:
+        dataset_path (str): The file path of the dataset.
+        output_path (str, optional): The path where the augmented dataset will be saved. If not specified, a new directory named `dataset_aug` will be created in the same directory as the dataset.
+        methods (list, optional): The augmentation methods to apply. Each method is an instance of an Albumentations transformation. If not specified, default methods are used.
+
+    Raises:
+        FileNotFoundError: If the dataset path does not exist.
+    """
 
     if not os.path.exists(dataset_path):
         raise FileNotFoundError("Dataset path does not exist")
