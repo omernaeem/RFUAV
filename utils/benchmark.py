@@ -14,29 +14,35 @@ import sys
 from .metrics.base_metric import EVAMetric
 from torch.utils.data import DataLoader
 
-
+# Supported image and raw data extensions
 image_ext = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff']
 raw_data_ext = ['.iq', '.dat']
 
+# Current directory and metric directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
 METRIC = os.path.join(current_dir, './metrics')
 sys.path.append(METRIC)
 
 
 class Model(nn.Module):
+    """
+    Performing inference and benchmarking using a pre-trained model.
+
+    Attributes:
+    - logger (colorful_logger): Logger for logging messages with color.
+    - cfg (str): Path to configuration dictionary.
+    - device (str): Device to use for inference (CPU or GPU).
+    - model (torch.nn.Module): Pre-trained model.
+    - save_path (str): Path to save the results.
+    - save (bool): Flag to indicate whether to save the results.
+    """
 
     def __init__(self,
                  cfg: str = '../configs/exp1_test.yaml',
                  weight_path: str = '../default.path',
                  save: bool = True,
                  ):
-        """
-        从cfg中初始化模型
-        实现对一个文件夹下的所有图像进行检测
-        实现对指定图像进行检测
-        实现对某一组原始数据进行检测
-        实现对benchmark上的所有数据的推理
-        """
+
         super().__init__()
         self.logger = self.set_logger
 
@@ -66,6 +72,13 @@ class Model(nn.Module):
         self.save = save
 
     def inference(self, source='../example/', save_path: str = '../result'):
+        """
+        Performs inference on the given source data.
+
+        Parameters:
+        - source (str): Path to the source data.
+        - save_path (str): Path to save the results.
+        """
 
         if self.save:
             if not os.path.exists(save_path):
@@ -87,7 +100,8 @@ class Model(nn.Module):
                 # detect raw datas in dir
                 elif is_valid_file(data, raw_data_ext):
                     self.RawdataProcess(data)
-                else: continue
+                else:
+                    continue
 
         # detect single image
         elif is_valid_file(source, image_ext):
@@ -99,6 +113,12 @@ class Model(nn.Module):
 
     @property
     def load_model(self):
+        """
+        Loads the pre-trained model.
+
+        Returns:
+        - model (torch.nn.Module): Loaded model.
+        """
 
         self.logger.log_with_color(f"Using device: {self.device}")
         model = model_init_(self.cfg['model'], self.cfg['num_classes'], pretrained=True)
@@ -114,6 +134,12 @@ class Model(nn.Module):
         return model
 
     def ImgProcessor(self, source):
+        """
+         Performs inference on spectromgram data.
+
+        Parameters:
+        - source (str): Path to the image.
+        """
 
         start_time = time.time()
 
@@ -129,30 +155,30 @@ class Model(nn.Module):
         predicted_class_name = get_key_from_value(self.cfg['class_names'], predicted_class_index)
 
         end_time = time.time()
-        self.logger.log_with_color(f"Inference time: {(end_time-start_time)/100 :.8f} sec")
+        self.logger.log_with_color(f"Inference time: {(end_time - start_time) / 100 :.8f} sec")
         self.logger.log_with_color(f"{source} contains Drone: {predicted_class_name}, "
-                                   f"confidence: {probabilities[0][predicted_class_index].item()*100 :.2f} %,"
+                                   f"confidence: {probabilities[0][predicted_class_index].item() * 100 :.2f} %,"
                                    f" start saving result")
 
         if self.save:
             res = self.add_result(res=predicted_class_name,
-                                  probability=probabilities[0][predicted_class_index].item()*100,
+                                  probability=probabilities[0][predicted_class_index].item() * 100,
                                   image=origin_image)
 
-            res.save(os.path.join(self.save_path, name+'.jpg'))
+            res.save(os.path.join(self.save_path, name + '.jpg'))
 
     def RawdataProcess(self, source):
         """
-        仅支持用特定python色标画图的原始数据进行推理
-        用python的画图程序把一个原始数据按fps=5画出来，
-        将所有图像结果预测出来后变成转换成一个视频
+        Transforming raw data into a video and performing inference on video.
+
+        Parameters:
+        - source (str): Path to the raw data.
         """
         res = []
         images = generate_images(source)
         name = os.path.splitext(os.path.basename(source))
 
         for image in images:
-
             temp = self.model(self.preprocess(image))
 
             probabilities = torch.softmax(temp, dim=1)
@@ -161,8 +187,8 @@ class Model(nn.Module):
             predicted_class_name = get_key_from_value(self.cfg['class_names'], predicted_class_index)
 
             _ = self.add_result(res=predicted_class_name,
-                                  probability=probabilities[0][predicted_class_index].item() * 100,
-                                  image=image)
+                                probability=probabilities[0][predicted_class_index].item() * 100,
+                                image=image)
             res.append(_)
 
         imageio.mimsave(os.path.join(self.save_path, name + '.mp4'), res, fps=5)
@@ -176,16 +202,35 @@ class Model(nn.Module):
                    text_color=(255, 0, 0),
                    probability=0.0
                    ):
+        """
+        Adds the inference result to the image.
 
-            draw = ImageDraw.Draw(image)
-            font = ImageFont.truetype(font, font_size)
-            draw.text(position, res + f" {probability:.2f}%", fill=text_color, font=font)
+        Parameters:
+        - res (str): Inference result.
+        - image (PIL.Image): Input image.
+        - position (tuple): Position to add the text.
+        - font (str): Font file path.
+        - font_size (int): Font size.
+        - text_color (tuple): Text color.
+        - probability (float): Confidence probability.
 
-            return image
+        Returns:
+        - image (PIL.Image): Image with added result.
+        """
+        draw = ImageDraw.Draw(image)
+        font = ImageFont.truetype(font, font_size)
+        draw.text(position, res + f" {probability:.2f}%", fill=text_color, font=font)
+
+        return image
 
     @property
     def set_logger(self):
+        """
+        Sets up the logger.
 
+        Returns:
+        - logger (colorful_logger): Logger instance.
+        """
         logger = colorful_logger('Inference')
         return logger
 
@@ -253,6 +298,16 @@ class Model(nn.Module):
 
 
 def is_valid_file(path, total_ext):
+    """
+    Checks if the file has a valid extension.
+
+    Parameters:
+    - path (str): Path to the file.
+    - total_ext (list): List of valid extensions.
+
+    Returns:
+    - bool: True if the file has a valid extension, False otherwise.
+    """
     last_element = os.path.basename(path)
     if any(last_element.lower().endswith(ext) for ext in total_ext):
         return True
@@ -261,15 +316,24 @@ def is_valid_file(path, total_ext):
 
 
 def get_key_from_value(d, value):
+    """
+    Gets the key from a dictionary based on the value.
+
+    Parameters:
+    - d (dict): Dictionary.
+    - value: Value to find the key for.
+
+    Returns:
+    - key: Key corresponding to the value, or None if not found.
+    """
     for key, val in d.items():
         if val == value:
             return key
     return None
 
 
-# Usage--------------------------------------------------------------------------------
+# Usage-----------------------------------------------------------------------------------------------------------------
 def main():
-
     test = Model(cfg='E:/Train_log/RFUAV/exp1_test/config.yaml',
                  weight_path='E:/Train_log/RFUAV/exp1_test/ResNet_epoch_29.pth')
 

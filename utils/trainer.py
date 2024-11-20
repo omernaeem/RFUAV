@@ -1,3 +1,6 @@
+"""
+The base trainer class `Basetrainer` and a custom trainer class `CustomTrainer` for training and validating image classification models.
+"""
 from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 import torch
@@ -5,13 +8,41 @@ import torch.nn as nn
 from torchvision import models
 import torch.optim as optim
 import os
-import logging
+import yaml
+from utils.build import build_from_cfg, check_cfg
+from utils.logger import colorful_logger
+import cv2
+from abc import abstractmethod
+from .metrics.base_metric import EVAMetric
+import sys
 
 
-class trainer():
+current_dir = os.path.dirname(os.path.abspath(__file__))
+METRIC = os.path.join(current_dir, './metrics')
+sys.path.append(METRIC)
+
+
+class Basetrainer:
     """
+    Base trainer class for initializing the model, dataset, optimizer, and performing training and validation.
 
-
+    Parameters:
+    - model (str): Model name, supported models include "resnet18", "resnet34", "resnet50", "resnet101", "resnet152",
+                  "vit_b_16", "vit_b_32", "vit_l_16", "vit_l_32", "vit_h_14",
+                  "swin_v2_t", "swin_v2_s", "swin_v2_b", "mobilenet_v3_small", "mobilenet_v3_large"
+    - train_path (str): Path to the training dataset
+    - val_path (str): Path to the validation dataset
+    - num_class (int): Number of classes
+    - save_path (str): Path to save the model
+    - weight_path (str, optional): Path to pre-trained weights, default is None
+    - log_file (str, optional): Path to the log file, default is "train.log"
+    - device (str, optional): Device to use, "cuda" or "cpu", default is "cuda"
+    - criterion (torch.nn.Module, optional): Loss function, default is `nn.CrossEntropyLoss()`
+    - pretrained (bool, optional): Whether to use pre-trained model, default is `True`
+    - batch_size (int, optional): Batch size, default is 8
+    - shuffle (bool, optional): Whether to shuffle the data, default is `False`
+    - image_size (int, optional): Image size, default is 224
+    - lr (float, optional): Learning rate, default is 0.0001
     """
     def __init__(self,
                  model: str,
@@ -27,6 +58,7 @@ class trainer():
                  batch_size: int = 8,
                  shuffle: bool = False,
                  image_size: int = 224,
+                 lr: float = 0.0001
                  ):
 
         self.batch_size = batch_size
@@ -39,173 +71,133 @@ class trainer():
         self.best_epoch = 0
         self.best_model = None
         self.device = torch.device(device if torch.cuda.is_available() else "cpu")
+        self.lr = lr
         self.logger = self.set_logger(os.path.join(save_path, log_file))
-        self.criterion = criterion  # initalizeing the loss function
-        self.set_up(model=model, train_path=train_path, val_path=val_path, pretrained=pretrained,
-                    weight_path=weight_path)
+        self.criterion = criterion  # initializing the loss function
+        self.set_up(model=model, train_path=train_path, val_path=val_path,
+                    pretrained=pretrained, weight_path=weight_path)
 
     def set_up(self, train_path, val_path, pretrained, weight_path, model='resnet18'):
+        """
+        Initialize the model, dataset, and optimizer.
+
+        Parameters:
+        - train_path (str): Path to the training dataset
+        - val_path (str): Path to the validation dataset
+        - pretrained (bool): Whether to use pre-trained model
+        - weight_path (str): Path to pre-trained weights
+        - model (str): Model name, default is "resnet18"
+        """
+
+        self.logger.log_with_color(f"Loading model: {model}")
+
         if os.path.exists(weight_path):
             pretrained = False
 
         if not os.path.exists(pretrained):
-            self.logger.info("Pretrained model not found, using default weight")
+            self.logger.log_with_color("Pretrained model not found, using default weight")
             pretrained = True
 
-        self.logger.info(f"Loading model: {model}")
-        # resnet serise model
-        if model == 'resnet18':
-            self.logger.info(f"Using {model}")
-            self.model = models.resnet18(pretrained=pretrained)
-            self.model.fc = nn.Linear(self.model.fc.in_features, self.num_class)
-        elif model == "resnet34":
-            self.logger.info(f"Using {model}")
-            self.model = models.resnet34(pretrained=pretrained)
-            self.model.fc = nn.Linear(self.model.fc.in_features, self.num_class)
-        elif model == 'resnet50':
-            self.logger.info(f"Using {model}")
-            self.model = models.resnet50(pretrained=pretrained)
-            self.model.fc = nn.Linear(self.model.fc.in_features, self.num_class)
-        elif model == 'resnet101':
-            self.logger.info(f"Using {model}")
-            self.model = models.resnet101(pretrained=pretrained)
-            self.model.fc = nn.Linear(self.model.fc.in_features, self.num_class)
-        elif model == 'resnet152':
-            self.logger.info(f"Using {model}")
-            self.model = models.resnet152(pretrained=pretrained)
-            self.model.fc = nn.Linear(self.model.fc.in_features, self.num_class)
-
-        # ViT serise model
-        elif model == "vit_b_16":
-            self.logger.info(f"Using {model}")
-            self.model = models.vit_b_16(pretrained=pretrained)
-            self.model.heads.head = nn.Linear(self.model.heads.head.in_features, self.num_class)
-        elif model == "vit_b_32":
-            self.logger.info(f"Using {model}")
-            self.model = models.vit_b_32(pretrained=pretrained)
-            self.model.heads.head = nn.Linear(self.model.heads.head.in_features, self.num_class)
-        elif model == "vit_l_16":
-            self.logger.info(f"Using {model}")
-            self.model = models.vit_l_16(pretrained=pretrained)
-            self.model.heads.head = nn.Linear(self.model.heads.head.in_features, self.num_class)
-        elif model == "vit_l_32":
-            self.logger.info(f"Using {model}")
-            self.model = models.vit_l_32(pretrained=pretrained)
-            self.model.heads.head = nn.Linear(self.model.heads.head.in_features, self.num_class)
-        elif model == "vit_h_14":
-            self.logger.info(f"Using {model}")
-            self.model = models.vit_h_14(pretrained=pretrained)
-            self.model.heads.head = nn.Linear(self.model.heads.head.in_features, self.num_class)
-
-        # SiwnTrans serise mdoel
-        elif model == "swin_v2_t":
-            self.logger.info(f"Using {model}")
-            self.model = models.swin_v2_t(pretrained=pretrained)
-            self.model.head = nn.Linear(self.model.head.in_features, self.num_class)
-        elif model == "swin_v2_s":
-            self.logger.info(f"Using {model}")
-            self.model = models.swin_v2_s(pretrained=pretrained)
-            self.model.head = nn.Linear(self.model.head.in_features, self.num_class)
-        elif model == "swin_v2_b":
-            self.logger.info(f"Using {model}")
-            self.model = models.swin_v2_b(pretrained=pretrained)
-            self.model.head = nn.Linear(self.model.head.in_features, self.num_class)
-
-        # Mobilnet serise model
-        elif model == "mobilenet_v3_large":
-            self.logger.info(f"Using {model}")
-            self.model = models.mobilenet_v3_large(pretrained=pretrained)
-            # self.model.classifier = nn.Linear(self.model.classifier.in_features, self.num_class)
-        elif model == "mobilenet_v3_small":
-            self.logger.info(f"Using {model}")
-            self.model = models.mobilenet_v3_small(pretrained=pretrained)
-            # self.model.classifier = nn.Linear(self.model.classifier.in_features, self.num_class)
-
-        else:
-            raise ValueError("model not supported")
+        self.model = model_init_(model_name=model, num_class=self.num_class, pretrained=pretrained)
 
         if os.path.exists(weight_path):
             self.load_pretrained_weights(weight_path)
-            self.logger.info(f"Loading pretrained weights from: {weight_path}")
+            self.logger.log_with_color(f"Loading pretrained weights from: {weight_path}")
 
         self.model.to(self.device)
-        self.logger.info(f"{model} loaded onto device: {self.device}")
+        self.logger.log_with_color(f"{model} loaded onto device: {self.device}")
 
         # initializing the dataset
-        self.logger.info(f"Loading dataset from: {train_path} and {val_path}")
+        self.logger.log_with_color(f"Loading dataset from: {train_path} and {val_path}")
         _train_set = datasets.ImageFolder(root=train_path, transform=transforms.Compose([
             transforms.Resize((self.image_size, self.image_size)),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ]))
+
         self.train_set = DataLoader(_train_set, batch_size=self.batch_size, shuffle=self.shuffle)
 
         _val_set = datasets.ImageFolder(root=val_path, transform=transforms.Compose([
             transforms.Resize((self.image_size, self.image_size)),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ]))
         self.val_set = DataLoader(_val_set, batch_size=self.batch_size, shuffle=self.shuffle)
 
         # initializing optimizer
-        self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
 
+    @abstractmethod
     def train(self, num_epochs):
         for epoch in range(num_epochs):
-            self.logger.info(f"Epoch [{epoch + 1}/{num_epochs}] started.")
-            self.model.train()  # 将模型设置为训练模式
+            self.logger.log_with_color(f"Epoch [{epoch + 1}/{num_epochs}] started.")
+            self.model.train()
             running_loss = 0.0
             correct = 0
             total = 0
             for images, labels in self.train_set:
                 images, labels = images.to(self.device), labels.to(self.device)
-                # 清除之前的梯度
                 self.optimizer.zero_grad()
 
-                # 前向传播
+                # forward
                 outputs = self.model(images)
                 loss = self.criterion(outputs, labels)
 
-                # 反向传播并优化
+                # backward
                 loss.backward()
                 self.optimizer.step()
 
-                # 统计训练过程中的损失和准确率
+                # acc & loss
                 running_loss += loss.item()
                 _, predicted = outputs.max(1)
                 total += labels.size(0)
                 correct += predicted.eq(labels).sum().item()
             train_loss = running_loss / len(self.train_set)
             train_acc = 100 * correct / total
-            self.logger.info(
+            self.logger.log_with_color(
                 f'Epoch [{epoch + 1}/{num_epochs}], Train Loss: {train_loss:.4f}, Train Accuracy: {train_acc:.2f}%')
-            val_acc, val_loss = self.val()
-            self.logger.info(f'Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_acc:.2f}%')
-            self.save_model(val_acc, epoch)
+            metrics = self.val
+            self.logger.log_with_color(f'Validation Loss: {metrics["loss"]:.4f}, Validation Accuracy: {metrics["acc"]:.2f}%')
+            self.save_model(metrics['acc'], epoch)
 
+    @property
     def val(self):
-        self.logger.info("Starting validation...")
+        self.logger.log_with_color("Starting validation...")
         self.model.eval()
         val_loss = 0.0
         val_correct = 0
         val_total = 0
+        val_probabilities = []
+        val_total_labels = []
         with torch.no_grad():
             for val_images, val_labels in self.val_set:
                 val_images, val_labels = val_images.to(self.device), val_labels.to(self.device)
                 val_outputs = self.model(val_images)
+                for val_output in val_outputs:
+                    val_probabilities.append(list(torch.softmax(val_output, dim=0)))
                 val_loss += self.criterion(val_outputs, val_labels).item()
                 _, val_predicted = val_outputs.max(1)
                 val_total += val_labels.size(0)
                 val_correct += val_predicted.eq(val_labels).sum().item()
-        return 100 * val_correct / val_total, val_loss / len(self.val_set)
+                val_total_labels.append(val_labels)
+        _val_total_labels = torch.concat(val_total_labels, dim=0)
+        _val_probabilities = torch.tensor(val_probabilities)
+        metrics = EVAMetric(preds=_val_probabilities.to(self.device),
+                            labels=_val_total_labels,
+                            num_classes=self.num_class,
+                            tasks=('f1', 'precision'),
+                            topk=(1, 3, 5),
+                            save_path=self.save_path,
+                            classes_name=self.train_set.dataset.classes)
+
+        metrics['acc'] = 100 * val_correct / val_total
+        metrics['total_loss'] = val_loss / len(self.val_set)
+        return metrics
 
     def save_model(self, val_acc, epoch):
         """
         Save the model after each epoch and track the best model based on validation accuracy.
         """
-
         checkpoint_path = os.path.join(self.save_path, f'{self.model._get_name()}_epoch_{epoch + 1}.pth')
-        self.logger.info(f'Model saved at {checkpoint_path} (Validation Accuracy: {val_acc:.2f}%)')
+        self.logger.log_with_color(f'Model saved at {checkpoint_path} (Validation Accuracy: {val_acc:.2f}%)')
         torch.save(self.model.state_dict(), checkpoint_path)
 
         # Save the best model if current validation accuracy is higher than the best recorded one
@@ -214,145 +206,192 @@ class trainer():
             self.best_model = self.model.state_dict()
             best_model_path = os.path.join(self.save_path, 'best_model.pth')
             torch.save(self.best_model, best_model_path)
-            self.logger.info(f'New best model saved with Accuracy: {val_acc:.2f}%')
+            self.logger.log_with_color(f'New best model saved with Accuracy: {val_acc:.2f}%')
 
     def set_logger(self, log_file):
         """
-        Set up the logger to output to both console and a log file.
+        Set up the logger.
+
+        Parameters:
+        - log_file (str): Path to the log file
+
+        Returns:
+        - logger (colorful_logger): Logger object
         """
 
-        # Create a logger
-        logger = logging.getLogger("TrainerLogger")
-        logger.setLevel(logging.INFO)
-
-        # Create console handler and set level to debug
-        ch = logging.StreamHandler()
-        ch.setLevel(logging.INFO)
-
-        # Create file handler and set level to info
-        fh = logging.FileHandler(log_file)
-        fh.setLevel(logging.INFO)
-
-        # Create formatter
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-
-        # Add formatter to handlers
-        ch.setFormatter(formatter)
-        fh.setFormatter(formatter)
-
-        # Add handlers to logger
-        logger.addHandler(ch)
-        logger.addHandler(fh)
-
+        logger = colorful_logger(name='Train', logfile=log_file)
         return logger
 
     def load_pretrained_weights(self, weight_path: str):
-        """
-        Load pretrained weights from the given path if the file exists.
-        """
+
         if os.path.exists(weight_path):
-            self.logger.info(f"Loading pretrained weights from: {weight_path}")
+            self.logger.log_with_color(f"Loading pretrained weights from: {weight_path}")
             state_dict = torch.load(weight_path, map_location=self.device)
             self.model.load_state_dict(state_dict)
-            self.logger.info(f"Successfully loaded pretrained weights from: {weight_path}")
+            self.logger.log_with_color(f"Successfully loaded pretrained weights from: {weight_path}")
         else:
-            self.logger.warning(f"Pretrained weights file not found at: {weight_path}. Skipping weight loading.")
+            self.logger.log_with_color(f"Pretrained weights file not found at: {weight_path}. Skipping weight loading.")
 
 
-"""ToDo
+def model_init_(model_name, num_class, pretrained=True):
+    """
+    Initialize the model.
 
-def model_select(model_name, num_class, pretrained=True):
+    Parameters:
+    - model_name (str): Model name
+    - num_class (int): Number of classes
+    - pretrained (bool, optional): Whether to use pre-trained model, default is `True`
 
-    logger.info(f"Loading model: {model_name}")
-    # resnet serise model
+    Returns:
+    - model (torch.nn.Module): Initialized model
+    """
+
+    # resnet series model
     if model_name == 'resnet18':
-        logger.info(f"Using {model}")
         model = models.resnet18(pretrained=pretrained)
         model.fc = nn.Linear(model.fc.in_features, num_class)
-    elif model == "resnet34":
-        logger.info(f"Using {model_name}")
+    elif model_name == "resnet34":
         model = models.resnet34(pretrained=pretrained)
         model.fc = nn.Linear(model.fc.in_features, num_class)
-    elif model == 'resnet50':
-        self.logger.info(f"Using {model_name}")
-        self.model = models.resnet50(pretrained=pretrained)
-        self.model.fc = nn.Linear(self.model.fc.in_features, self.num_class)
-    elif model == 'resnet101':
-        self.logger.info(f"Using {model}")
-        self.model = models.resnet101(pretrained=pretrained)
-        self.model.fc = nn.Linear(self.model.fc.in_features, self.num_class)
-    elif model == 'resnet152':
-        self.logger.info(f"Using {model}")
-        self.model = models.resnet152(pretrained=pretrained)
-        self.model.fc = nn.Linear(self.model.fc.in_features, self.num_class)
+    elif model_name == 'resnet50':
+        model = models.resnet50(pretrained=pretrained)
+        model.fc = nn.Linear(model.fc.in_features, num_class)
+    elif model_name == 'resnet101':
+        model = models.resnet101(pretrained=pretrained)
+        model.fc = nn.Linear(model.fc.in_features, num_class)
+    elif model_name == 'resnet152':
+        model = models.resnet152(pretrained=pretrained)
+        model.fc = nn.Linear(model.fc.in_features, num_class)
 
-    # ViT serise model
-    elif model == "vit_b_16":
-        self.logger.info(f"Using {model}")
-        self.model = models.vit_b_16(pretrained=pretrained)
-        self.model.heads.head = nn.Linear(self.model.heads.head.in_features, self.num_class)
-    elif model == "vit_b_32":
-        self.logger.info(f"Using {model}")
-        self.model = models.vit_b_32(pretrained=pretrained)
-        self.model.heads.head = nn.Linear(self.model.heads.head.in_features, self.num_class)
-    elif model == "vit_l_16":
-        self.logger.info(f"Using {model}")
-        self.model = models.vit_l_16(pretrained=pretrained)
-        self.model.heads.head = nn.Linear(self.model.heads.head.in_features, self.num_class)
-    elif model == "vit_l_32":
-        self.logger.info(f"Using {model}")
-        self.model = models.vit_l_32(pretrained=pretrained)
-        self.model.heads.head = nn.Linear(self.model.heads.head.in_features, self.num_class)
-    elif model == "vit_h_14":
-        self.logger.info(f"Using {model}")
-        self.model = models.vit_h_14(pretrained=pretrained)
-        self.model.heads.head = nn.Linear(self.model.heads.head.in_features, self.num_class)
+    # ViT series model
+    elif model_name == "vit_b_16":
+        model = models.vit_b_16(pretrained=pretrained)
+        model.heads.head = nn.Linear(model.heads.head.in_features, num_class)
+    elif model_name == "vit_b_32":
+        model = models.vit_b_32(pretrained=pretrained)
+        model.heads.head = nn.Linear(model.heads.head.in_features, num_class)
+    elif model_name == "vit_l_16":
+        model = models.vit_l_16(pretrained=pretrained)
+        model.heads.head = nn.Linear(model.heads.head.in_features, num_class)
+    elif model_name == "vit_l_32":
+        model = models.vit_l_32(pretrained=pretrained)
+        model.heads.head = nn.Linear(model.heads.head.in_features, num_class)
+    elif model_name == "vit_h_14":
+        model = models.vit_h_14(pretrained=pretrained)
+        model.heads.head = nn.Linear(model.heads.head.in_features, num_class)
 
-    # SiwnTrans serise mdoel
-    elif model == "swin_v2_t":
-        self.logger.info(f"Using {model}")
-        self.model = models.swin_v2_t(pretrained=pretrained)
-        self.model.head = nn.Linear(self.model.head.in_features, self.num_class)
-    elif model == "swin_v2_s":
-        self.logger.info(f"Using {model}")
-        self.model = models.swin_v2_s(pretrained=pretrained)
-        self.model.head = nn.Linear(self.model.head.in_features, self.num_class)
-    elif model == "swin_v2_b":
-        self.logger.info(f"Using {model}")
-        self.model = models.swin_v2_b(pretrained=pretrained)
-        self.model.head = nn.Linear(self.model.head.in_features, self.num_class)
+    # SiwnTrans series model
+    elif model_name == "swin_v2_t":
+        model = models.swin_v2_t(pretrained=pretrained)
+        model.head = nn.Linear(model.head.in_features, num_class)
+    elif model_name == "swin_v2_s":
+        model = models.swin_v2_s(pretrained=pretrained)
+        model.head = nn.Linear(model.head.in_features, num_class)
+    elif model_name == "swin_v2_b":
+        model = models.swin_v2_b(pretrained=pretrained)
+        model.head = nn.Linear(model.head.in_features, num_class)
 
-    # Mobilnet serise model
-    elif model == "mobilenet_v3_large":
-        self.logger.info(f"Using {model}")
-        self.model = models.mobilenet_v3_large(pretrained=pretrained)
-        # self.model.classifier = nn.Linear(self.model.classifier.in_features, self.num_class)
-    elif model == "mobilenet_v3_small":
-        self.logger.info(f"Using {model}")
-        self.model = models.mobilenet_v3_small(pretrained=pretrained)
-        # self.model.classifier = nn.Linear(self.model.classifier.in_features, self.num_class)
+    # Mobilenet series model
+    elif model_name == "mobilenet_v3_large":
+        model = models.mobilenet_v3_large(pretrained=pretrained)
+        model.classifier = nn.Linear(model.classifier.in_features, num_class)
+    elif model_name == "mobilenet_v3_small":
+        model = models.mobilenet_v3_small(pretrained=pretrained)
+        model.classifier = nn.Linear(model.classifier.in_features, num_class)
 
     else:
         raise ValueError("model not supported")
 
-"""
+    return model
 
 
-"""USAGE
-model = trainer(model='resnet18',
-              train_path='./data/train',
-              val_path='./data/val',
-              scheduler=None,
-              device='cuda) 
-model.train(num__epoch)
-"""
-model = trainer(model='resnet152',
-                train_path='E:/Dataset_log/leaf_test/train/',
-                val_path='E:/Dataset_log/leaf_test/valid/',
-                weight_path='',
-                image_size=224,
-                save_path='E:/Train_log/Drone_thesis/Classification/ResNet152/exp4_codecheck/',
-                batch_size=10,
-                num_class=23,
-                device='cuda')
-model.train(num_epochs=150)
+class CustomTrainer(Basetrainer):
+    """
+    Custom trainer class that extends the `Basetrainer` class. It initializes the trainer with configuration parameters
+    and provides additional functionality.
+
+    Parameters:
+    - cfg (str): Configuration file path
+    """
+
+    def __init__(self,
+                 cfg: str,
+                 ):
+        if check_cfg(cfg):
+            self.parameters = build_from_cfg(cfg)
+            super().__init__(
+                model=self.parameters['model'],
+                train_path=self.parameters['train'],
+                val_path=self.parameters['val'],
+                num_class=self.parameters['num_classes'],
+                save_path=self.parameters['save_path'],
+                weight_path=self.parameters['weights'],
+                device=self.parameters['device'],
+                batch_size=self.parameters['batch_size'],
+                shuffle=self.parameters['shuffle'],
+                image_size=self.parameters['image_size'],
+                lr=self.parameters['lr'],
+            )
+        else:
+            super().__init__(Basetrainer)
+
+        self.class_idx = self.train_set.dataset.class_to_idx
+        if self.save_yaml:
+            self.logger.log_with_color(f"Saving yaml file at {self.parameters['save_path']}")
+
+    @property
+    def save_yaml(self):
+
+        self.parameters['class_names'] = self.class_idx
+        with open(os.path.join(self.save_path, 'config.yaml'), 'w', encoding='utf-8') as file:
+            yaml.dump(self.parameters, file, allow_unicode=True)
+        return True
+
+    @property
+    def train(self):
+        num_epochs = self.parameters['num_epochs']
+
+        for epoch in range(num_epochs):
+            self.logger.log_with_color(f"Epoch [{epoch + 1}/{num_epochs}] started.")
+            self.model.train()
+            running_loss = 0.0
+            correct = 0
+            total = 0
+            for images, labels in self.train_set:
+                images, labels = images.to(self.device), labels.to(self.device)
+                self.optimizer.zero_grad()
+
+                # forward propagation
+                outputs = self.model(images)
+                loss = self.criterion(outputs, labels)
+
+                # backward propagation
+                loss.backward()
+                self.optimizer.step()
+
+                # acc & loss
+                running_loss += loss.item()
+                _, predicted = outputs.max(1)
+                total += labels.size(0)
+                correct += predicted.eq(labels).sum().item()
+            train_loss = running_loss / len(self.train_set)
+            train_acc = 100 * correct / total
+            self.logger.log_with_color(
+                f'Epoch [{epoch + 1}/{num_epochs}], Train Loss: {train_loss:.4f}, Train Accuracy: {train_acc:.2f}%')
+            metrics = self.val
+            self.logger.log_with_color(f'Validation Loss: {metrics["loss"]:.4f},')
+            self.logger.log_with_color(f' Validation Accuracy: {metrics["acc"]:.2f}%,')
+            self.logger.log_with_color(f' Validation macro_F1: {metrics["f1"]["macro_f1"]}')
+            self.logger.log_with_color(f' Validation micro_F1: {metrics["f1"]["micro_f1"]}')
+            self.logger.log_with_color(f' Validation mAP: {metrics["mAP"]["mAP"]}')
+            self.logger.log_with_color(f' Validation Top-k Accuracy: {metrics["Top-k"]}')
+
+            self.save_model(metrics, epoch)
+
+
+# for test--------------------------------------------------------------------------------------------------------------
+def show_img_in_dataloader(images):
+    """Imshow for Tensor."""
+    images = images.numpy().transpose((1, 2, 0))
+    cv2.imshow('test', images)
+    cv2.waitKey(0)
