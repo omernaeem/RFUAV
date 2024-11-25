@@ -1,99 +1,96 @@
-"""把两个或多个无人机的原始数据混合在一起，组成复杂无人机通讯环境
-ToDo
-封装成函数
-"""
-
-from scipy.io import loadmat
-import os
+# Merge the data of two drones
 import numpy as np
-import h5py
 import matplotlib.pyplot as plt
-from scipy.signal import stft, windows
+from graphic.RawDataProcessor import STFT
 
 
-UAV1 = 'E:/Drone_dataset/RFA/DroneRFa/RadioLinkAT9S_FLY/high/done_jet/T10101_S1000.mat'
-UAV2 = 'E:/Drone_dataset/RFA/DroneRFa/FutabaT14SG_FLY/high/done_jet/T10110_S1000.mat'
+def MergeData(UAV1: str,
+              UAV2: str,
+              targetFolderPath: str,
+              name: str,
+              duration_time: float = 0.1,
+              fs: int = 100e6,
+              stft_point: int = 1024
+              ):
 
+    """
+    Merge and process data from two UAVs, and save the processed data as images.
 
-time_duration = 0.1  # 预设时间窗的长度(关键参数)，决定x尺度
-fs = 100e6  # 采样带宽要和采样设备匹配,实验室设备的采样带宽一般为15MHZ，原论文中的最大采样带宽为100MHZ，采样带宽决定y轴尺度
-slice_point = int(fs*time_duration)
+    Args:
+        UAV1 (str): Path to the first UAV data file.
+        UAV2 (str): Path to the second UAV data file.
+        targetFolderPath (str): Directory to save the processed images.
+        name (str): Name prefix for the saved images.
+        duration_time (float, optional): Duration of each segment in seconds. Defaults to 0.1.
+        fs (int, optional): Sampling frequency in Hz. Defaults to 100e6.
+        stft_point (int, optional): Number of points for the STFT. Defaults to 1024.
+    """
 
-fly_name = 'Multi Fly'  # 预设无人机的名称
-sourceFolderPath = 'E:/360MoveData/Users/sam826001/Desktop/AVATA/'  # 预设读取的目录
-targetFolderPath = 'C:/Users/user/Desktop/clip2/'  # 预设保存的目录
+    slice_point = int(fs * duration_time)
 
-stft_point = 2048  # 采样点数是每次y轴用的点数,1024就够用了
+    data_UAV1 = np.fromfile(UAV1, dtype=np.float32)
+    data_UAV2 =np.fromfile(UAV2, dtype=np.float32)
 
+    data_UAV1_I = data_UAV1[::2]
+    data_UAV1_Q = data_UAV1[1::2]
 
-def main():
-    # 设置一个循环使程序可以连续的读取一个文件中的所有图片
-    data_UAV1 = h5py.File(UAV1, 'r')
-    data_UAV2 = h5py.File(UAV2, 'r')
+    data_UAV2_I = data_UAV2[::2]
+    data_UAV2_Q = data_UAV2[1::2]
 
-    # data_UAV1_I1 = data_UAV1['RF0_I'][0]
-    data_UAV1_I2 = data_UAV1['RF0_I'][0]
+    data_UAV1_I2_padded = np.pad(data_UAV1_I, (0,  max(len(data_UAV1_I), len(data_UAV2_I)) - len(data_UAV1_I)), 'constant', constant_values=0)
+    data_UAV1_Q2_padded = np.pad(data_UAV1_Q, (0,  max(len(data_UAV1_Q), len(data_UAV2_Q)) - len(data_UAV1_Q)), 'constant', constant_values=0)
 
+    data_UAV2_I1_padded = np.pad(data_UAV2_I, (0,  max(len(data_UAV1_I), len(data_UAV2_I)) - len(data_UAV2_I)), 'constant', constant_values=0)
+    data_UAV2_Q2_padded = np.pad(data_UAV2_Q, (0,  max(len(data_UAV1_Q), len(data_UAV2_Q)) - len(data_UAV2_Q)), 'constant', constant_values=0)
 
-    data_UAV2_I1 = data_UAV2['RF0_I'][0]  # 同一组信号的IQ读一路就行
-    # data_UAV2_I2 = data_UAV2['RF1_I'][0]  # 同一组信号的IQ读一路就行
+    _data_UAV1 = data_UAV1_I2_padded + data_UAV1_Q2_padded * 1j
+    _data_UAV2 = data_UAV2_I1_padded + data_UAV2_Q2_padded * 1j
 
-    # 获取两个数组的长度
-    len1 = len(data_UAV1_I2)
-    len2 = len(data_UAV2_I1)
-
-    # 确定最长的长度
-    max_len = max(len1, len2)
-
-    # 将较短的数组用0补齐
-    data_UAV1_I2_padded = np.pad(data_UAV1_I2, (0, max_len - len1), 'constant', constant_values=0)
-    data_UAV2_I1_padded = np.pad(data_UAV2_I1, (0, max_len - len2), 'constant', constant_values=0)
-
-    # 对齐后的数组进行逐元素相加
-    data_merged = data_UAV1_I2_padded + data_UAV2_I1_padded
-
-    j = 0
     i = 0
-    while (j+1)*slice_point <= len(data_merged):
+    data_merged = _data_UAV1 + _data_UAV2
+    while (i + 1) * slice_point <= len(data_merged):
 
-        """
-        f_I2, t_I2, Zxx_I2 = stft(data_UAV1_I2[i*slice_point: (i+1) * slice_point],
-                         fs, window=windows.hamming(stft_point), nperseg=stft_point)
-        augmentation_Zxx2 = 20*np.log10(np.abs(Zxx_I2))  # 是否选择增强
+        f, t, Zxx = STFT(data_merged[int(i * slice_point): int((i + 1) * slice_point)],
+                         stft_point=stft_point,
+                         fs=fs,
+                         duration_time=duration_time,
+                         onside=False)
+        f = np.fft.fftshift(f)
+        Zxx = np.fft.fftshift(Zxx, axes=0)
+        aug = 10 * np.log10(np.abs(Zxx))
+        extent = [t.min(), t.max(), f.min(), f.max()]
+
         plt.figure()
-        plt.pcolormesh(t_I2, f_I2, augmentation_Zxx2, cmap='jet')
-        plt.title(fly_name + (str(i)))
-        plt.savefig(targetFolderPath + fly_name + '_fir_' + str(i) + '_20-40m_' + '2.4GHZ.jpg', dpi=300)
-        plt.close()
-
-        f2_I1, t_I1, Zxx_I1 = stft(data_UAV2_I1[i*slice_point: (i+1) * slice_point],
-                         fs, window=windows.hamming(stft_point), nperseg=stft_point)
-        augmentation_2_Zxx1 = 20*np.log10(np.abs(Zxx_I1))
-        plt.figure()
-        plt.ioff()
-        plt.pcolormesh(t_I1, f2_I1, augmentation_2_Zxx1, cmap='jet')
-        plt.title(fly_name + (str(i)))
-        plt.savefig(targetFolderPath + fly_name + '_sec_' + str(i) + '_20-40m_' + '985MHZ.jpg', dpi=300)  # dpi设置了图片保存的清晰度，300对应1K的图片
-        plt.close()
-        """
-
-
-        fm_I1, tm_I1, Zxxm_I1 = stft(data_merged[i*slice_point: (i+1) * slice_point],
-                         fs, window=windows.hamming(stft_point), nperseg=stft_point)
-        augmentation_merge_Zxx1 = 20*np.log10(np.abs(Zxxm_I1))
-        # 画第一组IQ
-        plt.figure()
-        plt.ioff()  # 关闭可视窗
-        plt.pcolormesh(tm_I1, fm_I1, augmentation_merge_Zxx1, cmap='jet')
+        plt.imshow(aug, extent=extent, aspect='auto', origin='lower')
         plt.axis('off')
-        plt.title('Multi Drone')
-        plt.savefig(targetFolderPath + fly_name + '' + str(i), dpi=300)
+        plt.subplots_adjust(left=0, right=1, bottom=0, top=1, wspace=None, hspace=None)
+        plt.savefig(targetFolderPath + name + '/' + ' (' + str(i) + ').jpg', dpi=300)
+        plt.show()
         plt.close()
 
-        i += 1
-        j += 1
+        i += 2 ** (-1)
 
-    return 0
+
+# Usage-----------------------------------------------------------------------------------------------------------------
+def main():
+    UAV1 = 'E:/Drone_dataset/RFA/DroneRFa/RadioLinkAT9S_FLY/high/done_jet/T10101_S1000.dat'
+    UAV2 = 'E:/Drone_dataset/RFA/DroneRFa/FutabaT14SG_FLY/high/done_jet/T10110_S1000.dat'
+    targetFolderPath = 'C:/Users/user/Desktop/clip2/'
+    name = 'test'
+
+    duration_time = 0.1
+    fs = 100e6
+    stft_point = 1024
+
+    MergeData(
+        UAV1=UAV1,
+        UAV2=UAV2,
+        targetFolderPath=targetFolderPath,
+        name=name,
+        duration_time=duration_time,
+        fs=fs,
+        stft_point1=stft_point
+    )
 
 
 if __name__ == '__main__':
