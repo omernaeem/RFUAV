@@ -1,4 +1,6 @@
+# A sample script to test the model.
 from utils.benchmark import Model
+
 
 def main():
 

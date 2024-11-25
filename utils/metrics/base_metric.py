@@ -1,11 +1,4 @@
-"""
-模型评估的基础参数和最大接口
----------ToDo
-加logger和注释
-"""
-
 from abc import ABCMeta, abstractmethod
-import logging
 import torch
 from typing import Any, Dict, List, Optional
 from torch import Tensor
@@ -13,16 +6,19 @@ from utils.logger import colorful_logger
 
 
 class BaseMetric(metaclass=ABCMeta):
-    """Base class for f1, topk, confusionmatrix, precision metric. original: https://github.com/open-mmlab/mmeval
+
+    """
+    Base class for f1, topk, confusionmatrix, precision metric.
+    original implementation: https://github.com/open-mmlab/mmeval
 
     To implement a metric, you should implement a subclass of ``BaseMetric``
     that overrides the ``add`` and ``compute_metric`` methods. ``BaseMetric``
     will automatically complete the distributed synchronization between
     processes.
 
-    In the evaluation process, each metric will update ``self._results`` to
-    store intermediate results after each call of ``add``. When computing the
-    final metric result, the ``self._results`` will be synchronized between
+    During the evaluation process, each metric will update ``self._results``
+    to store intermediate results after each call to ``add``. When computing
+    the final metric result, the ``self._results`` will be synchronized between
     processes.
     """
 
@@ -30,6 +26,12 @@ class BaseMetric(metaclass=ABCMeta):
                  dataset_meta: Optional[Dict] = None,
                  dist_collect_mode: str = 'unzip',
                  ):
+        """Initialize the BaseMetric.
+
+        Args:
+            dataset_meta (Optional[Dict], optional): Meta information of the dataset. Defaults to None.
+            dist_collect_mode (str, optional): Mode for distributed collection, either 'cat' or 'unzip'. Defaults to 'unzip'.
+        """
         self.dataset_meta = dataset_meta
         assert dist_collect_mode in ('cat', 'unzip')
         self.dist_collect_mode = dist_collect_mode
@@ -102,6 +104,22 @@ class EVAMetric:
                 save_path: Optional[str] = None,
                 classes_name: Optional[tuple[str, ...]] = None,):
 
+        """
+        Custom evaluation metrics for predictions and labels.
+
+        Args:
+            preds (Tensor): Predicted values.
+            labels (Tensor): Ground truth labels.
+            tasks (tuple[str, ...], optional): Tasks to perform, e.g., 'f1', 'precision', 'CM'. Defaults to ('f1', 'precision', 'CM').
+            num_classes (Optional[int], optional): Number of classes. Defaults to None.
+            topk (tuple[int, ...], optional): Top-k values to compute accuracy. Defaults to None.
+            save_path (Optional[str], optional): Path to save plots. Defaults to None.
+            classes_name (Optional[tuple[str, ...]], optional): Names of the classes. Defaults to None.
+
+        Returns:
+            dict: Dictionary containing the computed metrics.
+        """
+
         logger = colorful_logger('Evaluate')
         res = {}
 
@@ -165,8 +183,6 @@ def main():
                        classes_name=classes_name)
 
     print(metric)
-    # {'precision': 33.3333, 'recall': 16.6667, 'f1-score': 22.2222}
-    # {'precision_micro': 25.0, 'recall_micro': 25.0, 'f1-score_micro': 25.0}
 
 
 if __name__ == '__main__':

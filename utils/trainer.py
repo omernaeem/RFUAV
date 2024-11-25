@@ -23,6 +23,7 @@ sys.path.append(METRIC)
 
 
 class Basetrainer:
+
     """
     Base trainer class for initializing the model, dataset, optimizer, and performing training and validation.
 
@@ -44,6 +45,7 @@ class Basetrainer:
     - image_size (int, optional): Image size, default is 224
     - lr (float, optional): Learning rate, default is 0.0001
     """
+
     def __init__(self,
                  model: str,
                  train_path: str,
@@ -78,6 +80,7 @@ class Basetrainer:
                     pretrained=pretrained, weight_path=weight_path)
 
     def set_up(self, train_path, val_path, pretrained, weight_path, model='resnet18'):
+
         """
         Initialize the model, dataset, and optimizer.
 
@@ -193,9 +196,11 @@ class Basetrainer:
         return metrics
 
     def save_model(self, val_acc, epoch):
+
         """
         Save the model after each epoch and track the best model based on validation accuracy.
         """
+
         checkpoint_path = os.path.join(self.save_path, f'{self.model._get_name()}_epoch_{epoch + 1}.pth')
         self.logger.log_with_color(f'Model saved at {checkpoint_path} (Validation Accuracy: {val_acc:.2f}%)')
         torch.save(self.model.state_dict(), checkpoint_path)
@@ -209,6 +214,7 @@ class Basetrainer:
             self.logger.log_with_color(f'New best model saved with Accuracy: {val_acc:.2f}%')
 
     def set_logger(self, log_file):
+
         """
         Set up the logger.
 
@@ -306,6 +312,7 @@ def model_init_(model_name, num_class, pretrained=True):
 
 
 class CustomTrainer(Basetrainer):
+
     """
     Custom trainer class that extends the `Basetrainer` class. It initializes the trainer with configuration parameters
     and provides additional functionality.
