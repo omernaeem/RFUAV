@@ -135,7 +135,7 @@ def generate_images(datapack: str = None,
             images.append(Image.open(buffer))
 
         else:
-            plt.savefig(location + file + '/' + pack + '/' + file + ' (' + str(i) + ').jpg', dpi=300)
+            plt.savefig(location + (file + '/') if file else '' + (pack + '/') if pack else '' + ' (' + str(i) + ').jpg', dpi=300)
             plt.close()
 
         i += 2 ** (-ratio)
@@ -222,7 +222,7 @@ def show_half_only(datapack: str = '',
                    ):
 
     """
-    Displays the I and Q components of the given data separately.
+    Displays I and Q components of the given data separately.
 
     Parameters:
     - datapack (str): Path to the data file.
@@ -282,29 +282,44 @@ def DrawandSave(
     - fs (int): Sampling frequency, default is 100 MHz.
     - stft_point (int): Number of points for STFT, default is 2048.
     - duration_time (float): Duration time for each segment, default is 0.1 seconds.
-    """
 
-    slice_point = int(fs * duration_time)
+    Your raw data should organize like this:
+    file_path
+        Drone 1
+            data pack1.dat
+            data pack2.dat
+            ...
+            data packn.dat
+        Drone 2
+            data pack1.dat
+            data pack2.dat
+            ...
+            data packn.dat
+        Drone 3
+            data pack1.dat
+            data pack2.dat
+            ...
+            data packn.dat
+        .....
+        Drone n
+            ...
+    """
     re_files = os.listdir(file_path)
 
     for file in re_files:
-        packlist = os.listdir(file_path + file)
+        packlist = os.listdir(os.path.join(file_path, file))
         for pack in packlist:
-            check_folder(os.path.join(fig_save_path + file, pack))
-            packname = os.path.join(file_path + file, pack)
-            read_data = np.fromfile(packname, dtype=np.float32)
-            data = read_data[::2]
-            j = 0
-            while (j + 1) * slice_point <= len(data):
-                generate_images(datapack=data[int(j * slice_point): int((j + 1) * slice_point)],
-                                file=file,
-                                pack=pack,
-                                ratio=0,
-                                stft_point=stft_point,
-                                location=fig_save_path,
-                                )
+            check_folder(os.path.join(os.path.join(fig_save_path + file), pack))
+            generate_images(datapack=os.path.join(packlist, pack),
+                            file=file,
+                            pack=pack,
+                            fs=fs,
+                            stft_point=stft_point,
+                            duration_time=duration_time,
+                            ratio=0,
+                            location=fig_save_path,
+                            )
 
-                j += 1
             print(pack + ' Done')
         print(file + ' Done')
     print('All Done')
@@ -375,7 +390,8 @@ def main():
                                      duration_time=0.1,
                                      )
 
-
+    """
+    
     datapack = 'E:/Drone_dataset/RFUAV/crop_data/DJFPVCOMBO/DJFPVCOMBO-16db-90db_5760m_100m_10m/DJFPVCOMBO-16db-90db_5760m_100m_10m_0-2s.dat'
     save_path = 'E:/Drone_dataset/RFUAV/darw_test/'
     save_as_video(datapack=datapack,
@@ -398,8 +414,7 @@ def main():
                    stft_point=2048,
                    duration_time=0.1,
                    )
-    # DrawandSave()
-
+    """
 
 if __name__ == '__main__':
     main()
