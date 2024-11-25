@@ -7,13 +7,13 @@ time_sec = 0.1;                   % 需要的分割时间/s
 dataform = 'float32';           % 输入的数据类型
 byte_per = 4;                   % 该数据类型占字节数
 datalength = time_sec*fs*byte_per*2;       % 读取数据的长度，单位是字节(时间*采样率*每个数据占字节*iq)
-file_in ="Z:\RFUAV\加噪\DIMINI4PRO-17db-60db_2450m_100m_20-noise";% 输入路径
+file_in ="Z:\RFUAV\加噪\DJI AVTA2-SNR2dB-85db_5760m_100m_20m(1-noise";% 输入路径
 % 获取文件夹内所有iq/dat文件
 files_dat = dir(fullfile(file_in, '*.dat'));
 files_iq = dir(fullfile(file_in, '*.iq'));
 files = [files_dat; files_iq];
 % 一级循环，遍历文件
-for ii = 1:length(files)
+for ii = 19:length(files)
     fileName{ii} = files(ii).name;
     file_input = fullfile(file_in,fileName{ii});
     
@@ -24,7 +24,7 @@ for ii = 1:length(files)
             break; % 找到第一个 '-' 后退出循环
         end
     end
-    filepathOut = "E:\Drone_dataset\RFUAV\augmentation_exp1_MethodSelect\images\Matlab";
+    filepathOut = "G:\Draw";
     filepathOut_get = filepathOut + '\' + path + '\' + fileName{ii}(1:end-4);
     color = ["parula","hsv","hot","autumn"];
     % 读取文件,获取大小
