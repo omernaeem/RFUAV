@@ -7,18 +7,28 @@ time_sec = 0.1;                   % 需要的分割时间/s
 dataform = 'float32';           % 输入的数据类型
 byte_per = 4;                   % 该数据类型占字节数
 datalength = time_sec*fs*byte_per*2;       % 读取数据的长度，单位是字节(时间*采样率*每个数据占字节*iq)
-file_in ="E:\DataBase\JUMPER";% 输入路径
-% 获取文件夹内所有iq/dat文件
-% 检索 .dat 文件
-files_dat = dir(fullfile(file_in, '*.dat'));
-% 检索 .iq 文件
-files_iq = dir(fullfile(file_in, '*.iq'));
-% 合并两个结果
-files = [files_dat; files_iq];
+file_in ={"Z:\RFUAV\UAVDATA\第二批\FutabaT14SG",
+          "Z:\RFUAV\UAVDATA\第二批\herelink",
+          "Z:\RFUAV\UAVDATA\第二批\SIYI",
+          "Z:\RFUAV\UAVDATA\第二批\yunzhuo"};% 输入路径
+files = [];
+for i = 1:length(file_in)
+    % 获取文件夹内所有iq/dat/bin文件
+    files_dat = dir(fullfile(file_in{i}, '*.dat'));
+    files_iq = dir(fullfile(file_in{i}, '*.iq'));
+    files_bin = dir(fullfile(file_in{i}, '*.bin'));
+    % 合并两个结果
+    files = [files,files_dat; files_iq,files_bin];
+    file_num(i) = length(files);
+end
+fileFlag = 1;
 % 一级循环，遍历文件
 for ii = 1:length(files)
     fileName{ii} = files(ii).name;
-    file_input = fullfile(file_in,fileName{ii});
+    while(ii > file_num(fileFlag))
+        fileFlag = fileFlag + 1;
+    end
+    file_input = fullfile(file_in{fileFlag},fileName{ii})
     % 从文件名判断无人机机型，第一个-/_前名称
     myname = char(fileName{ii});
     for i = 1:length(myname)
