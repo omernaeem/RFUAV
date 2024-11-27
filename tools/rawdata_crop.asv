@@ -9,7 +9,7 @@ time_sec = 2;                   % 需要的分割时间/s
 dataform = 'float32';           % 输入的数据类型
 byte_per = 4;                   % 该数据类型占字节数
 datalength = time_sec*fs*byte_per*2;       % 读取数据的长度，单位是字节(时间*采样率*每个数据占字节*iq)
-file_input ="E:/Drone_dataset/RFUAV/rawdata/DJMAVIC3PRO/DJMAVIC3PRO-11db-90db_5800m_100m_10m.iq";% 输入路径
+file_input ="E:/Drone_dataset/RFUAV/rawdata/SIYI_MK15/SIYI_MK15_2440_daifei_gain80dB.iq";% 输入路径
 [filepath, name, ~] = fileparts(file_input); % 获取路径、文件名和后缀名，在原路径创建文件夹存放分割后数据
 filepath = filepath + '\' + name;
 
