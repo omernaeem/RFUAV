@@ -107,9 +107,9 @@ def generate_images(datapack: str = None,
     - list: List of images if `location` is 'buffer'.
     """
     slice_point = int(fs * duration_time)
-    read_data = np.fromfile(datapack, dtype=np.float32)
-    data = read_data[::2] + read_data[1::2] * 1j
-    images = []
+    data = np.fromfile(datapack, dtype=np.float32)
+    data = data[::2] + data[1::2] * 1j
+    if location == 'buffer': images = []
 
     i = 0
     while (i + 1) * slice_point <= len(data):
@@ -135,7 +135,7 @@ def generate_images(datapack: str = None,
             images.append(Image.open(buffer))
 
         else:
-            plt.savefig(location + (file + '/') if file else '' + (pack + '/') if pack else '' + ' (' + str(i) + ').jpg', dpi=300)
+            plt.savefig(location + (file + '/' if file else '') + (pack + '/' if pack else '') + file + ' (' + str(i) + ').jpg', dpi=300)
             plt.close()
 
         i += 2 ** (-ratio)
@@ -286,20 +286,20 @@ def DrawandSave(
     Your raw data should organize like this:
     file_path
         Drone 1
-            data pack1.dat
-            data pack2.dat
+            data pack1.iq
+            data pack2.iq
             ...
-            data packn.dat
+            data packn.iq
         Drone 2
-            data pack1.dat
-            data pack2.dat
+            data pack1.iq
+            data pack2.iq
             ...
-            data packn.dat
+            data packn.iq
         Drone 3
-            data pack1.dat
-            data pack2.dat
+            data pack1.iq
+            data pack2.iq
             ...
-            data packn.dat
+            data packn.iq
         .....
         Drone n
             ...
@@ -310,7 +310,7 @@ def DrawandSave(
         packlist = os.listdir(os.path.join(file_path, file))
         for pack in packlist:
             check_folder(os.path.join(os.path.join(fig_save_path + file), pack))
-            generate_images(datapack=os.path.join(packlist, pack),
+            generate_images(datapack=os.path.join(os.path.join(file_path, file), pack),
                             file=file,
                             pack=pack,
                             fs=fs,
@@ -373,6 +373,13 @@ def STFT(data,
 # Usage----------------------------------------------------------------------------------------
 def main():
     test = RawDataProcessor()
+    test.TransRawDataintoSpectrogram(fig_save_path='E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/images/Py/',
+                                     data_path='E:/Drone_dataset/RFUAV/rawdata/',
+                                     sample_rate=100e6,
+                                     stft_point=1024,
+                                     duration_time=0.1,
+                                     )
+
     """
     test.ShowSpectrogram(data_path='E:/Drone_dataset/RFUAV/crop_data/DJFPVCOMBO/DJFPVCOMBO-16db-90db_5760m_100m_10m/DJFPVCOMBO-16db-90db_5760m_100m_10m_0-2s.dat',
                          drone_name='DJ FPV COMBO',
@@ -383,15 +390,16 @@ def main():
                          )
     """
 
+    """
     test.TransRawDataintoSpectrogram(fig_save_path='E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/images/Py/',
-                                     data_path='//UGREEN-8880/zstu320_320_公共空间/RFUAV/加噪/',
-                                     sample_rate=100e6,
-                                     stft_point=2048,
-                                     duration_time=0.1,
-                                     )
+                                 data_path='//UGREEN-8880/zstu320_320_公共空间/RFUAV/加噪/',
+                                 sample_rate=100e6,
+                                 stft_point=2048,
+                                 duration_time=0.1,
+                                 )
+    """
 
     """
-    
     datapack = 'E:/Drone_dataset/RFUAV/crop_data/DJFPVCOMBO/DJFPVCOMBO-16db-90db_5760m_100m_10m/DJFPVCOMBO-16db-90db_5760m_100m_10m_0-2s.dat'
     save_path = 'E:/Drone_dataset/RFUAV/darw_test/'
     save_as_video(datapack=datapack,

@@ -88,7 +88,7 @@ def check_folder(folder_path):
 
 def main():
     data_path = "Z:/RFUAV/所有无人机默认颜色/"
-    output_path = "E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/temp/"
+    output_path = "E:/Drone_dataset/RFUAV/augmentation_exp2_allDrone/image/"
     x, y, width, height = 295, 140, 1710, 1460  # 矩形窗的坐标和尺寸
     # crop_and_save_image(read_image_with_chinese_path(image_path), output_path, x, y, width, height)
 
