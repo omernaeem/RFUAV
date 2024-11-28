@@ -13,10 +13,13 @@ Args:
     output_path (str, optional): The path where the augmented dataset will be saved. If not specified, a new directory named `dataset_aug` will be created in the same directory as the dataset.
 """
 
-import cv2
 import albumentations as A
+import shutil
+import random
+import cv2
+from PIL import Image
+import numpy as np
 import os
-
 
 def data_augmentation(dataset_path: str = None,
                       output_path: str = None,
@@ -31,6 +34,13 @@ def data_augmentation(dataset_path: str = None,
 
     Raises:
         FileNotFoundError: If the dataset path does not exist.
+
+    Your dataset should organize like this
+    dataset_path
+        ├──train
+        │└──images
+        └──valid
+         └──images
     """
 
     if not os.path.exists(dataset_path):
@@ -117,10 +127,143 @@ def show_image(image):
     cv2.destroyAllWindows()
 
 
+def split_images(input_path, output_path, train_ratio=0.8):
+
+    print('starting split')
+
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+
+
+    for drone_type in os.listdir(input_path):
+
+        train_path = os.path.join(os.path.join(output_path, 'train'), drone_type)
+        valid_path = os.path.join(os.path.join(output_path, 'valid'), drone_type)
+
+        if not os.path.exists(train_path):
+            os.makedirs(train_path)
+
+        if not os.path.exists(valid_path):
+            os.makedirs(valid_path)
+
+        image_files = [f for f in os.listdir(os.path.join(input_path, drone_type)) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+        random.shuffle(image_files)
+
+        num_train = int(len(image_files) * train_ratio)
+
+        for image in image_files[:num_train]:
+            src = os.path.join(os.path.join(input_path, drone_type), image)
+            dst = os.path.join(train_path, image)
+            shutil.copy(src, dst)
+
+        for image in image_files[num_train:]:
+            src = os.path.join(os.path.join(input_path, drone_type), image)
+            dst = os.path.join(valid_path, image)
+            shutil.copy(src, dst)
+
+        print(drone_type + ' Done')
+
+
+
+def read_image_with_chinese_path(image_path):
+
+    pil_image = Image.open(image_path)
+    cv_image = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
+
+    return cv_image
+
+
+def crop_and_save_image(image,
+                        output_path,
+                        x,
+                        y,
+                        width,
+                        height):
+    """
+    截取图像中固定位置的一个矩形窗，并将截取的内容保存到指定位置。
+
+    Args:
+        image (str): 输入图像的路径。
+        output_path (str): 输出图像的路径。
+        x (int): 矩形窗左上角的 x 坐标。
+        y (int): 矩形窗左上角的 y 坐标。
+        width (int): 矩形窗的宽度。
+        height (int): 矩形窗的高度。
+
+    Returns:
+        None
+    """
+    # 截取矩形窗
+    cropped_image = image[y:y+height, x:x+width]
+
+    # 创建输出目录（如果不存在）
+    output_dir = os.path.dirname(output_path)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    # 保存截取的图像
+    cv2.imwrite(output_path, cropped_image)
+    print(f"Cropped image saved to {output_path}")
+
+
+def CropImage(
+        fig_save_path: str,
+        file_path: str,
+        x,
+        y,
+        width,
+        height
+):
+
+    drones = os.listdir(file_path)
+
+    for drone in drones:
+        packlist = os.listdir(file_path + drone)
+        for pack in packlist:
+
+            _ = os.path.join(file_path+drone, pack)
+
+            if os.path.isfile(_):
+                check_folder(fig_save_path + drone)
+                crop_and_save_image(read_image_with_chinese_path(_), fig_save_path + drone + '/' + pack, x=x, y=y, width=width, height=height)
+
+            else:
+                imgs = os.listdir(_)
+                for img in imgs:
+                    _save_path = os.path.join(fig_save_path + drone, pack)
+                    check_folder(_save_path)
+                    img_path = os.path.join(_, img)
+                    crop_and_save_image(read_image_with_chinese_path(img_path), _save_path + '/' + img, x=x, y=y, width=width, height=height)
+                    print(img + ' Done')
+            print(pack + ' Done')
+        print(drone + ' Done')
+    print('All Done')
+
+
+def check_folder(folder_path):
+    """
+    Checks and creates the folder if it does not exist.
+
+    Parameters:
+    - folder_path (str): Path to the folder.
+    """
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+        print(f"folder '{folder_path}' created。")
+    else:
+        print(f"folder '{folder_path}' existed。")
+
+
 # Usage---------------------------------------------------------------------------------------------------------------
 def main():
-    data_path = "E:/Dataset_log/drone_thesis_classification_v2/"
-    output_path = "E:/Drone_dataset/RFUAV/augmentation_exp2/"
+
+    """
+    split_images(input_path='E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/3.dataset-origin+20dB_defaultcolor_usingAG/img/',
+             output_path='E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/3.dataset-origin+20dB_defaultcolor_usingAG/dataset/')
+    """
+
+    data_path = "E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/3.dataset-origin+20dB_defaultcolor_usingAG/dataset_or/"
+    output_path = "E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/3.dataset-origin+20dB_defaultcolor_usingAG/dataset_aug/"
     methods = [A.AdvancedBlur(
                     blur_limit=(7, 13),
                     sigma_x_limit=(7, 13),
@@ -157,7 +300,6 @@ def main():
                )
                ]
     data_augmentation(dataset_path=data_path, output_path=output_path, methods=methods)
-
 
 # test
 if __name__ == '__main__':
