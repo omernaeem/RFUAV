@@ -59,14 +59,21 @@ def CropImage(
     for drone in drones:
         packlist = os.listdir(file_path + drone)
         for pack in packlist:
+
             _ = os.path.join(file_path+drone, pack)
-            imgs = os.listdir(_)
-            for img in imgs:
-                _save_path = os.path.join(fig_save_path + drone, pack)
-                check_folder(_save_path)
-                img_path = os.path.join(_, img)
-                crop_and_save_image(read_image_with_chinese_path(img_path), _save_path + '/' + img, x=x, y=y, width=width, height=height)
-                print(img + ' Done')
+
+            if os.path.isfile(_):
+                check_folder(fig_save_path + drone)
+                crop_and_save_image(read_image_with_chinese_path(_), fig_save_path + drone + '/' + pack, x=x, y=y, width=width, height=height)
+
+            else:
+                imgs = os.listdir(_)
+                for img in imgs:
+                    _save_path = os.path.join(fig_save_path + drone, pack)
+                    check_folder(_save_path)
+                    img_path = os.path.join(_, img)
+                    crop_and_save_image(read_image_with_chinese_path(img_path), _save_path + '/' + img, x=x, y=y, width=width, height=height)
+                    print(img + ' Done')
             print(pack + ' Done')
         print(drone + ' Done')
     print('All Done')
@@ -87,8 +94,8 @@ def check_folder(folder_path):
 
 
 def main():
-    data_path = "Z:/RFUAV/所有无人机默认颜色/"
-    output_path = "E:/Drone_dataset/RFUAV/augmentation_exp2_allDrone/image/"
+    data_path = "E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/3.dataset-origin+20dB_defaultcolor_usingAG/"
+    output_path = "E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/123/"
     x, y, width, height = 295, 140, 1710, 1460  # 矩形窗的坐标和尺寸
     # crop_and_save_image(read_image_with_chinese_path(image_path), output_path, x, y, width, height)
 
