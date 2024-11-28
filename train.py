@@ -3,7 +3,7 @@ from utils.trainer import CustomTrainer
 
 
 def main():
-    model = CustomTrainer(cfg='./configs/exp1_test.yaml')
+    model = CustomTrainer(cfg='./configs/exp1.1_ResNet18.yaml')
     model.train()
 
 

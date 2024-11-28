@@ -28,7 +28,7 @@ for ii = 1:length(files)
     while(ii > file_num(fileFlag))
         fileFlag = fileFlag + 1;
     end
-    file_input = fullfile(file_in{fileFlag},fileName{ii})
+    file_input = fullvfile(file_in{fileFlag},fileName{ii})
     % 从文件名判断无人机机型，第一个-/_前名称
     myname = char(fileName{ii});
     for i = 1:length(myname)
