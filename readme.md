@@ -1,6 +1,10 @@
 # The RFUAV DATASET
-This is the official repository of our XXXX paper RFUAV: RFUAV: A Benchmark Dataset for Unmanned Aerial Vehicle Detection and Identification. RFUAV provides a comprehensive benchmark for the drone detection and indentification tasks.  
-
+## Abstract
+The official repository of our paper: ”RFUAV: A Benchmark Dataset for Unmanned Aerial Vehicle Detection and Identification“. RFUAV provides a comprehensive benchmark dataset include raw frequency signal data and spectromgrams for drone detection and indentification tasks.  
+The raw data in dataset include 35 of different types of drone under high signal-to-noise ratio (SNR). This dataset is available to all researchers who use RF to analyze drones. You can analyze the data through Deep Learning methods we provided or any traditional signal processing methods like Decode, Demodulation, and FFT. The detailed information of the dataset is shown in the following figure.
+  ![pic.1](./abstract/FSM.png)
+We analyzed property of each drone in the dataset include: Frequency Hopping signal bandwidth (FHSBW), Frequency Hopping Signal Duration time (FHSDT), Video Transmitted Signal Bandwidth (VSBW), Frequency Hopping Signal Duty Cycle (FHSDC), and Frequency Hopping Signal pattern period (FVFPP). And plotted their distribution as shown below. More detailed information is presented in our paper.
+  ![pic.2](./abstract/FVFPP.png)
 ## 1.Quick start
 <details>
 <summary>installtion</summary>
