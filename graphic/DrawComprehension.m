@@ -39,17 +39,17 @@ for ii = 1:length(files)
 %         disp("文件夹已经存在!");
 %     end
     % 读取文件,获取大小
-    fp = fopen(file_input, 'rb'); 
+    fp = fopen(file_input, 'rb');
     fseek(fp, 0, 1);
     fileSize = ftell(fp);
     fclose(fp);
     readtime = ceil(fileSize/datalength);
-    
+
     %% 分次读取文件保存
     time = 0;
     for i =1:readtime
         tic
-        fp = fopen(file_input, 'rb'); 
+        fp = fopen(file_input, 'rb');
         fseek(fp,(i-1)*datalength,-1);
         data = fread(fp,datalength/4,dataform);
         fclose(fp);
