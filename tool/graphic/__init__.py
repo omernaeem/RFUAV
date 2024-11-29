@@ -1,2 +1,0 @@
-def iqreader():
-    return None
