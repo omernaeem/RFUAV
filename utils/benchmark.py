@@ -9,20 +9,21 @@ from PIL import Image, ImageDraw, ImageFont
 import time
 from graphic.RawDataProcessor import generate_images
 import imageio
-from logger import colorful_logger
 import sys
-from .metrics.base_metric import EVAMetric
-from torch.utils.data import DataLoader
-
-# Supported image and raw data extensions
-image_ext = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff']
-raw_data_ext = ['.iq', '.dat']
 
 # Current directory and metric directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
 METRIC = os.path.join(current_dir, './metrics')
 sys.path.append(METRIC)
+sys.path.append(current_dir)
 
+from .metrics.base_metric import EVAMetric
+from torch.utils.data import DataLoader
+from logger import colorful_logger
+
+# Supported image and raw data extensions
+image_ext = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff']
+raw_data_ext = ['.iq', '.dat']
 
 class Model(nn.Module):
     """

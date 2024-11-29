@@ -202,16 +202,16 @@ class Basetrainer:
         """
 
         checkpoint_path = os.path.join(self.save_path, f'{self.model._get_name()}_epoch_{epoch + 1}.pth')
-        self.logger.log_with_color(f'Model saved at {checkpoint_path} (Validation Accuracy: {val_acc:.2f}%)')
+        self.logger.log_with_color(f'Model saved at {checkpoint_path} (Validation Accuracy: {val_acc["acc"]:.2f}%)')
         torch.save(self.model.state_dict(), checkpoint_path)
 
         # Save the best model if current validation accuracy is higher than the best recorded one
-        if val_acc > self.best_acc:
-            self.best_acc = val_acc
+        if val_acc["acc"] > self.best_acc:
+            self.best_acc = val_acc["acc"]
             self.best_model = self.model.state_dict()
             best_model_path = os.path.join(self.save_path, 'best_model.pth')
             torch.save(self.best_model, best_model_path)
-            self.logger.log_with_color(f'New best model saved with Accuracy: {val_acc:.2f}%')
+            self.logger.log_with_color(f'New best model saved with Accuracy: {val_acc["acc"]:.2f}%')
 
     def set_logger(self, log_file):
 
@@ -386,7 +386,7 @@ class CustomTrainer(Basetrainer):
             self.logger.log_with_color(
                 f'Epoch [{epoch + 1}/{num_epochs}], Train Loss: {train_loss:.4f}, Train Accuracy: {train_acc:.2f}%')
             metrics = self.val
-            self.logger.log_with_color(f'Validation Loss: {metrics["loss"]:.4f},')
+            self.logger.log_with_color(f' Validation Loss: {metrics["total_loss"]:.4f},')
             self.logger.log_with_color(f' Validation Accuracy: {metrics["acc"]:.2f}%,')
             self.logger.log_with_color(f' Validation macro_F1: {metrics["f1"]["macro_f1"]}')
             self.logger.log_with_color(f' Validation micro_F1: {metrics["f1"]["micro_f1"]}')
