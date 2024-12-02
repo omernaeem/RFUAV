@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 import torch
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from torch import Tensor
 from utils.logger import colorful_logger
 

@@ -300,10 +300,20 @@ def model_init_(model_name, num_class, pretrained=True):
     # Mobilenet series model
     elif model_name == "mobilenet_v3_large":
         model = models.mobilenet_v3_large(pretrained=pretrained)
-        model.classifier = nn.Linear(model.classifier.in_features, num_class)
+        model.classifier = nn.Sequential(
+            nn.Linear(model.classifier[0].in_features, 512),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(512, num_class)
+        )
     elif model_name == "mobilenet_v3_small":
         model = models.mobilenet_v3_small(pretrained=pretrained)
-        model.classifier = nn.Linear(model.classifier.in_features, num_class)
+        model.classifier = model.classifier = nn.Sequential(
+            nn.Linear(model.classifier[0].in_features, 512),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(512, num_class)
+        )
 
     else:
         raise ValueError("model not supported")
