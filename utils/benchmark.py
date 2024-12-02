@@ -10,20 +10,27 @@ import time
 from graphic.RawDataProcessor import generate_images
 import imageio
 import sys
+import cv2
+from Detmodel.model import DetectModel
+from Detmodel.base import LoadImages, Profile, Path, non_max_suppression, Annotator, scale_boxes, colorstr, Colors
 
 # Current directory and metric directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
 METRIC = os.path.join(current_dir, './metrics')
+MODELS = os.path.join(os.path.join(current_dir, 'Detmodel'), 'model')
+
 sys.path.append(METRIC)
+sys.path.append(MODELS)
 sys.path.append(current_dir)
 
-from .metrics.base_metric import EVAMetric
+from metrics.base_metric import EVAMetric
 from torch.utils.data import DataLoader
 from logger import colorful_logger
 
 # Supported image and raw data extensions
 image_ext = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff']
 raw_data_ext = ['.iq', '.dat']
+
 
 class Model(nn.Module):
     """
@@ -297,6 +304,89 @@ class Model(nn.Module):
         metrics['total_loss'] = loss / len(dataset)
         return metrics
 
+def detect_signal(
+                  source='../example/source/',
+                  save_dir='../res',
+                  weight_path='',
+                  imgsz=(640, 640),
+                  conf_thres=0.25,
+                  iou_thres=0.45,
+                  max_det=1000,
+                  agnostic_nms=False,
+                  line_thickness=3,
+                  hide_labels=False,
+                  hide_conf=False,
+                  ):
+
+    color = Colors()
+    detmodel = DetectModel(weights=weight_path)
+    stride, names, pt = detmodel.stride, detmodel.names, detmodel.pt
+
+    # Dataloader
+    dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt)
+    # Run inference
+    seen, windows, dt = 0, [], (Profile(), Profile(), Profile())
+    for path, im, im0s, s in dataset:
+        with dt[0]:
+            im = torch.from_numpy(im).to(detmodel.device)
+            im = im.float()  # uint8 to fp16/32
+            im /= 255  # 0 - 255 to 0.0 - 1.0
+            if len(im.shape) == 3:
+                im = im[None]  # expand for batch dim
+
+        # Inference
+        with dt[1]:
+            pred = detmodel(im)
+        # NMS
+        with dt[2]:
+            pred = non_max_suppression(pred, conf_thres, iou_thres, agnostic=agnostic_nms, max_det=max_det)
+        # Second-stage classifier (optional)
+        # pred = utils.general.apply_classifier(pred, classifier_model, im, im0s)
+
+        # Process predictions
+        for i, det in enumerate(pred):  # per image
+            seen += 1
+            p, im0, frame = path, im0s.copy(), getattr(dataset, 'frame', 0)
+
+            res = {}  # Drone res
+            flag_audio = 0  # audio player
+            p = Path(p)  # to Path
+            save_path = str(save_dir / p.name)  # im.jpg
+            txt_path = str(save_dir / 'labels' / p.stem) + ('' if dataset.mode == 'image' else f'_{frame}')  # im.txt
+            s += '%gx%g ' % im.shape[2:]  # print string
+            gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
+            imc = im0  # for save_crop
+            annotator = Annotator(im0, line_width=line_thickness, example=str(names))
+            if len(det):
+                # Rescale boxes from img_size to im0 size
+                det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()
+
+                # Print results
+                for c in det[:, 5].unique():
+                    n = (det[:, 5] == c).sum()  # detections per class
+                    s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
+                    res[names[int(c)]] = int(n)
+
+                for *xyxy, conf, cls in reversed(det):
+                    c = int(cls)  # integer class
+                    label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
+
+                    annotator.box_label(xyxy, label, color=color(c+2, True))
+
+            # Stream results
+            im0 = annotator.result()
+            # Save results (image with detections)
+            cv2.imwrite(save_path, im0)
+
+        # Print time (inference-only)
+        print(f"{s}{'' if len(det) else '(no detections), '}{dt[1].dt * 1E3:.1f}ms")
+
+    # Print results
+    t = tuple(x.t / seen * 1E3 for x in dt)  # speeds per image
+    print(f'Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS per image at shape {(1, 3, *imgsz)}' % t)
+    s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}"
+    print(f"Results saved to {colorstr('bold', save_dir)}{s}")
+
 
 def is_valid_file(path, total_ext):
     """
@@ -335,13 +425,19 @@ def get_key_from_value(d, value):
 
 # Usage-----------------------------------------------------------------------------------------------------------------
 def main():
+
+    """
     test = Model(cfg='E:/Train_log/RFUAV/exp1_test/config.yaml',
                  weight_path='E:/Train_log/RFUAV/exp1_test/ResNet_epoch_29.pth')
 
     test.inference(source='E:/FowardRes_log/RFUAV/1.code_check/exp1/source',
                    save_path='E:/FowardRes_log/RFUAV/1.code_check/exp1/res')
     # test.benchmark()
-
+    """
+    detect_signal(source='E:/Drone_dataset/RFA/figure_python_jet/FutabaT14SG_FLY/high/batch1_T10110_S1000/',
+                   save_dir='C:/ML/RFUAV/res/',
+                   weight_path='C:/ML/YOLO/v5/yolov5sr/yolov5-master/weights/stage1_30.pt'
+                   )
 
 if __name__ == '__main__':
     main()
