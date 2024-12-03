@@ -1,0 +1,1 @@
+from .model import YOLOV5S

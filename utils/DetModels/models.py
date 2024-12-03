@@ -11,11 +11,11 @@ from typing import Iterable, List, Optional, Union
 
 import torch
 import torch.nn as nn
-from .base import Ensemble, Detect
+from ..yolo import DetectionModel
+from ..yolo.basic import Ensemble, Detect
 
 
-
-class DetectModel(nn.Module):
+class YOLOV5S(nn.Module):
     # YOLOv5 MultiBackend class for python inference on various backends
     def __init__(self,
                  weights='yolov5s.pt',
@@ -24,8 +24,6 @@ class DetectModel(nn.Module):
                  data=None,
                  fp16=False,
                  fuse=True):
-        # Usage:
-        #   PyTorch:              weights = *.pt
 
         super().__init__()
         model = Ensemble()
@@ -34,6 +32,10 @@ class DetectModel(nn.Module):
         nhwc = False  # BHWC formats (vs torch BCWH)
         stride = 32  # default stride
         cuda = torch.cuda.is_available() and device.type != 'cpu'  # use CUDA
+
+        # load model
+        model = DetectionModel()
+        model.load_state_dict(w)
 
         ckpt = torch.load(weights, map_location='cpu')
         ckpt = ckpt['model'].to(device).float()

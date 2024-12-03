@@ -18,6 +18,7 @@ import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.parallel import DistributedDataParallel as DDP
+from PIL import Image
 
 
 LOCAL_RANK = int(os.getenv('LOCAL_RANK', -1))  # https://pytorch.org/docs/stable/elastic/run.html
@@ -174,3 +175,53 @@ class EarlyStopping:
                         f'To update EarlyStopping(patience={self.patience}) pass a new patience value, '
                         f'i.e. `python train.py --patience 300` or use `--patience 0` to disable EarlyStopping.')
         return stop
+
+
+def make_divisible(x, divisor):
+    # Returns nearest x divisible by divisor
+    if isinstance(divisor, torch.Tensor):
+        divisor = int(divisor.max())  # to int
+    return math.ceil(x / divisor) * divisor
+
+
+def copy_attr(a, b, include=(), exclude=()):
+    # Copy attributes from b to a, options to only include [...] and to exclude [...]
+    for k, v in b.__dict__.items():
+        if (len(include) and k not in include) or k.startswith('_') or k in exclude:
+            continue
+        else:
+            setattr(a, k, v)
+
+
+def smart_inference_mode(torch_1_9=check_version(torch.__version__, '1.9.0')):
+    # Applies torch.inference_mode() decorator if torch>=1.9.0 else torch.no_grad() decorator
+    def decorate(fn):
+        return (torch.inference_mode if torch_1_9 else torch.no_grad)()(fn)
+
+    return decorate
+
+
+def exif_transpose(image):
+    """
+    Transpose a PIL image accordingly if it has an EXIF Orientation tag.
+    Inplace version of https://github.com/python-pillow/Pillow/blob/master/src/PIL/ImageOps.py exif_transpose()
+
+    :param image: The image to transpose.
+    :return: An image.
+    """
+    exif = image.getexif()
+    orientation = exif.get(0x0112, 1)  # default 1
+    if orientation > 1:
+        method = {
+            2: Image.FLIP_LEFT_RIGHT,
+            3: Image.ROTATE_180,
+            4: Image.FLIP_TOP_BOTTOM,
+            5: Image.TRANSPOSE,
+            6: Image.ROTATE_270,
+            7: Image.TRANSVERSE,
+            8: Image.ROTATE_90}.get(orientation)
+        if method is not None:
+            image = image.transpose(method)
+            del exif[0x0112]
+            image.info['exif'] = exif.tobytes()
+    return image
