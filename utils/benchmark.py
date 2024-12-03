@@ -11,17 +11,16 @@ from graphic.RawDataProcessor import generate_images
 import imageio
 import sys
 import cv2
-from Detmodel.model import DetectModel
-from Detmodel.base import LoadImages, Profile, Path, non_max_suppression, Annotator, scale_boxes, colorstr, Colors
+from DetModels import YOLOV5S
+from DetModels.yolo.basic import LoadImages, Profile, Path, non_max_suppression, Annotator, scale_boxes, colorstr, Colors
 
 # Current directory and metric directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
 METRIC = os.path.join(current_dir, './metrics')
-MODELS = os.path.join(os.path.join(current_dir, 'Detmodel'), 'model')
 
 sys.path.append(METRIC)
-sys.path.append(MODELS)
 sys.path.append(current_dir)
+sys.path.append('utils/DetModels/yolo')
 
 from metrics.base_metric import EVAMetric
 from torch.utils.data import DataLoader
@@ -319,7 +318,7 @@ def detect_signal(
                   ):
 
     color = Colors()
-    detmodel = DetectModel(weights=weight_path)
+    detmodel = YOLOV5S(weights=weight_path)
     stride, names, pt = detmodel.stride, detmodel.names, detmodel.pt
 
     # Dataloader

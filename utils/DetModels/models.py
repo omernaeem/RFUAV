@@ -11,9 +11,9 @@ from typing import Iterable, List, Optional, Union
 
 import torch
 import torch.nn as nn
-from ..yolo import DetectionModel
-from ..yolo.basic import Ensemble, Detect
-
+from .yolo import DetectionModel
+from .yolo.basic import Ensemble, Detect
+import io
 
 class YOLOV5S(nn.Module):
     # YOLOv5 MultiBackend class for python inference on various backends
@@ -35,10 +35,8 @@ class YOLOV5S(nn.Module):
 
         # load model
         model = DetectionModel()
-        model.load_state_dict(w)
 
-        ckpt = torch.load(weights, map_location='cpu')
-        ckpt = ckpt['model'].to(device).float()
+        ckpt = model['model'].to(device).float()
         model.append(ckpt.fuse().eval() if fuse and hasattr(ckpt, 'fuse') else ckpt.eval())  # model in eval mode
 
         # Module compatibility updates

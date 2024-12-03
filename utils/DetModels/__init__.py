@@ -1,1 +1,1 @@
-from .model import YOLOV5S
+from .models import YOLOV5S
