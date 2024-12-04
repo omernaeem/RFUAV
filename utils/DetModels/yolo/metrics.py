@@ -10,6 +10,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+from .basic import TryExcept, threaded
 
 
 def fitness(x):

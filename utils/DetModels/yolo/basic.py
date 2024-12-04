@@ -16,9 +16,11 @@ import torchvision
 from PIL import Image, ImageDraw
 import pkg_resources as pkg
 import platform
+import threading
 
 IMG_FORMATS = 'bmp', 'dng', 'jpeg', 'jpg', 'mpo', 'png', 'tif', 'tiff', 'webp', 'pfm'  # include image suffixes
-
+IMAGENET_MEAN = 0.485, 0.456, 0.406  # RGB mean
+IMAGENET_STD = 0.229, 0.224, 0.225  # RGB standard deviation
 
 def check_version(current='0.0.0', minimum='0.0.0', name='version ', pinned=False, hard=False, verbose=False):
     # Check version vs. required version
@@ -73,11 +75,10 @@ class Detect(nn.Module):
             if not self.training:  # inference
                 if self.dynamic or self.grid[i].shape[2:4] != x[i].shape[2:4]:
                     self.grid[i], self.anchor_grid[i] = self._make_grid(nx, ny, i)
-                else:  # Detect (boxes only)
-                    xy, wh, conf = x[i].sigmoid().split((2, 2, self.nc + 1), 4)
-                    xy = (xy * 2 + self.grid[i]) * self.stride[i]  # xy
-                    wh = (wh * 2) ** 2 * self.anchor_grid[i]  # wh
-                    y = torch.cat((xy, wh, conf), 4)
+                xy, wh, conf = x[i].sigmoid().split((2, 2, self.nc + 1), 4)
+                xy = (xy * 2 + self.grid[i]) * self.stride[i]  # xy
+                wh = (wh * 2) ** 2 * self.anchor_grid[i]  # wh
+                y = torch.cat((xy, wh, conf), 4)
                 z.append(y.view(bs, self.na * nx * ny, self.no))
 
         return x if self.training else (torch.cat(z, 1),) if self.export else (torch.cat(z, 1), x)
@@ -531,3 +532,34 @@ def time_sync():
     if torch.cuda.is_available():
         torch.cuda.synchronize()
     return time.time()
+
+
+class TryExcept(contextlib.ContextDecorator):
+    # YOLOv5 TryExcept class. Usage: @TryExcept() decorator or 'with TryExcept():' context manager
+    def __init__(self, msg=''):
+        self.msg = msg
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, value, traceback):
+        if value:
+            print(emojis(f"{self.msg}{': ' if self.msg else ''}{value}"))
+        return True
+
+
+def threaded(func):
+    # Multi-threads a target function and returns thread. Usage: @threaded decorator
+    def wrapper(*args, **kwargs):
+        thread = threading.Thread(target=func, args=args, kwargs=kwargs, daemon=True)
+        thread.start()
+        return thread
+
+    return wrapper
+
+
+def denormalize(x, mean=IMAGENET_MEAN, std=IMAGENET_STD):
+    # Denormalize RGB images x per ImageNet stats in BCHW format, i.e. = x * std + mean
+    for i in range(3):
+        x[:, i] = x[:, i] * std[i] + mean[i]
+    return x
