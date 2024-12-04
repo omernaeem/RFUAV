@@ -21,6 +21,7 @@ from PIL import Image
 import numpy as np
 import os
 
+
 def data_augmentation(dataset_path: str = None,
                       output_path: str = None,
                       methods: list[str] = None):

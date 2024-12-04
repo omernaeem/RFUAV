@@ -3,7 +3,7 @@ from utils.trainer import CustomTrainer
 
 
 def main():
-    model = CustomTrainer(cfg='./configs/exp1.7_mobilenet_v3_l.yaml')
+    model = CustomTrainer(cfg='./configs/exp1.8_vit_b_16.yaml')
     model.train()
 
 
