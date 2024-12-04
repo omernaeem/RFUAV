@@ -1,0 +1,11 @@
+{
+    "detector": {
+        "cfg": "../configs/exp1_test.yaml"
+    },
+    "classifier": {
+        "weight_path": "../weights/exp1_test.pth",
+        "cfg": "../configs/exp1_test.yaml"
+    },
+    "target_dir": "../example/source",
+    "save_dir": "../res"
+}
