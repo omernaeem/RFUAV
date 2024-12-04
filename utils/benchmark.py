@@ -31,8 +31,8 @@ image_ext = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff']
 raw_data_ext = ['.iq', '.dat']
 
 
-class Model(nn.Module):
-    """
+class Classify_Model(nn.Module):
+    """分类阶段的模型切换公共接口
     Performing inference and benchmarking using a pre-trained model.
 
     Attributes:
@@ -118,6 +118,21 @@ class Model(nn.Module):
         elif is_valid_file(source, raw_data_ext):
             self.RawdataProcess(source)
 
+    # ToDo 给外部用的接口
+    def _inference(self, img):
+        name = os.path.basename(img)[:-4]
+        origin_image = Image.open(img).convert('RGB')
+        preprocessed_image = self.preprocess(img)
+
+        temp = self.model(preprocessed_image)
+
+        probabilities = torch.softmax(temp, dim=1)
+
+        predicted_class_index = torch.argmax(probabilities, dim=1).item()
+        predicted_class_name = get_key_from_value(self.cfg['class_names'], predicted_class_index)
+
+        return
+
     @property
     def load_model(self):
         """
@@ -164,7 +179,7 @@ class Model(nn.Module):
         end_time = time.time()
         self.logger.log_with_color(f"Inference time: {(end_time - start_time) / 100 :.8f} sec")
         self.logger.log_with_color(f"{source} contains Drone: {predicted_class_name}, "
-                                   f"confidence: {probabilities[0][predicted_class_index].item() * 100 :.2f} %,"
+                                   f"confidence1: {probabilities[0][predicted_class_index].item() * 100 :.2f} %,"
                                    f" start saving result")
 
         if self.save:
@@ -303,88 +318,106 @@ class Model(nn.Module):
         metrics['total_loss'] = loss / len(dataset)
         return metrics
 
-def detect_signal(
-                  source='../example/source/',
-                  save_dir='../res',
-                  weight_path='',
-                  imgsz=(640, 640),
-                  conf_thres=0.25,
-                  iou_thres=0.45,
-                  max_det=1000,
-                  agnostic_nms=False,
-                  line_thickness=3,
-                  hide_labels=False,
-                  hide_conf=False,
-                  ):
 
-    color = Colors()
-    detmodel = YOLOV5S(weights=weight_path)
-    stride, names, pt = detmodel.stride, detmodel.names, detmodel.pt
+class Detection_Model:
+    """做一个调模型的公共接口
 
-    # Dataloader
-    dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt)
-    # Run inference
-    seen, windows, dt = 0, [], (Profile(), Profile(), Profile())
-    for path, im, im0s, s in dataset:
-        with dt[0]:
+    """
+    def __init__(self, cfg):
+        """做一个解析cfg的功能，然后按照cfg指定选模型
+
+        :param cfg:
+
+        """
+        model_name = cfg['model_name']
+        weight_path = cfg['weight_path']
+        if model_name == 'yolov5':
+            self.S1model = YOLOV5S(weights=cfg)
+            self.S1model.inference = self.yolov5_detect
+
+        # ToDo
+        elif model_name == 'faster_rcnn':
+            self.S1model = YOLOV5S(weights=cfg)
+            self.S1model.inference = self.yolov5_detect
+
+    #ToDo 给外部用的接口
+    def yolov5_detect(self,
+                      source='../example/source/',
+                      save_dir='../res',
+                      weight_path='../example/detect/',
+                      imgsz=(640, 640),
+                      conf_thres=0.25,
+                      iou_thres=0.45,
+                      max_det=1000,
+                      line_thickness=3,
+                      hide_labels=False,
+                      hide_conf=False,
+                      ):
+
+        color = Colors()
+        detmodel = self.S1model
+        stride, names = detmodel.stride, detmodel.names
+        dataset = LoadImages(source, img_size=imgsz, stride=stride)
+        # Run inference
+        seen, windows, dt = 0, [], (Profile(), Profile(), Profile())
+        for path, im, im0s, s in dataset:
             im = torch.from_numpy(im).to(detmodel.device)
             im = im.float()  # uint8 to fp16/32
             im /= 255  # 0 - 255 to 0.0 - 1.0
             if len(im.shape) == 3:
                 im = im[None]  # expand for batch dim
 
-        # Inference
-        with dt[1]:
+            # Inference
             pred = detmodel(im)
-        # NMS
-        with dt[2]:
-            pred = non_max_suppression(pred, conf_thres, iou_thres, agnostic=agnostic_nms, max_det=max_det)
-        # Second-stage classifier (optional)
-        # pred = utils.general.apply_classifier(pred, classifier_model, im, im0s)
+            # NMS
+            pred = non_max_suppression(pred, conf_thres, iou_thres, agnostic=False, max_det=max_det)
+            # Process predictions
+            for i, det in enumerate(pred):  # per image
+                seen += 1
+                p, im0, frame = path, im0s.copy(), getattr(dataset, 'frame', 0)
 
-        # Process predictions
-        for i, det in enumerate(pred):  # per image
-            seen += 1
-            p, im0, frame = path, im0s.copy(), getattr(dataset, 'frame', 0)
+                res = {}  # Drone
+                p = Path(p)  # to Path
+                save_path = str(save_dir + p.name)  # im.jpg
+                s += '%gx%g ' % im.shape[2:]  # print string
+                annotator = Annotator(im0, line_width=line_thickness, example=str(names))
+                if len(det):
+                    # Rescale boxes from img_size to im0 size
+                    det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()
 
-            res = {}  # Drone res
-            flag_audio = 0  # audio player
-            p = Path(p)  # to Path
-            save_path = str(save_dir / p.name)  # im.jpg
-            txt_path = str(save_dir / 'labels' / p.stem) + ('' if dataset.mode == 'image' else f'_{frame}')  # im.txt
-            s += '%gx%g ' % im.shape[2:]  # print string
-            gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
-            imc = im0  # for save_crop
-            annotator = Annotator(im0, line_width=line_thickness, example=str(names))
-            if len(det):
-                # Rescale boxes from img_size to im0 size
-                det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()
+                    # Print results
+                    for c in det[:, 5].unique():
+                        n = (det[:, 5] == c).sum()  # detections per class
+                        s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
+                        res[names[int(c)]] = int(n)
 
-                # Print results
-                for c in det[:, 5].unique():
-                    n = (det[:, 5] == c).sum()  # detections per class
-                    s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
-                    res[names[int(c)]] = int(n)
+                    for *xyxy, conf, cls in reversed(det):
+                        c = int(cls)  # integer class
+                        label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
 
-                for *xyxy, conf, cls in reversed(det):
-                    c = int(cls)  # integer class
-                    label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
+                        annotator.box_label(xyxy, label, color=color(c+2, True))
 
-                    annotator.box_label(xyxy, label, color=color(c+2, True))
+                # Stream results
+                im0 = annotator.result()
+                # Save results (image with detections)
+                cv2.imwrite(save_path, im0)
 
-            # Stream results
-            im0 = annotator.result()
-            # Save results (image with detections)
-            cv2.imwrite(save_path, im0)
+        # Print results
+        print(f"Results saved to {colorstr('bold', save_dir)}")
 
-        # Print time (inference-only)
-        print(f"{s}{'' if len(det) else '(no detections), '}{dt[1].dt * 1E3:.1f}ms")
-
-    # Print results
-    t = tuple(x.t / seen * 1E3 for x in dt)  # speeds per image
-    print(f'Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS per image at shape {(1, 3, *imgsz)}' % t)
-    s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}"
-    print(f"Results saved to {colorstr('bold', save_dir)}{s}")
+    def faster_rcnn_detect(self,
+                           source='../example/source/',
+                           save_dir='../res',
+                           weight_path='../example/detect/',
+                           imgsz=(640, 640),
+                           conf_thres=0.25,
+                           iou_thres=0.45,
+                           max_det=1000,
+                           line_thickness=3,
+                           hide_labels=False,
+                           hide_conf=False,
+    ):
+        pass
 
 
 def is_valid_file(path, total_ext):
@@ -433,9 +466,10 @@ def main():
                    save_path='E:/FowardRes_log/RFUAV/1.code_check/exp1/res')
     # test.benchmark()
     """
-    detect_signal(source='E:/Drone_dataset/RFA/figure_python_jet/FutabaT14SG_FLY/high/batch1_T10110_S1000/',
+    test = Detection_Model('test')
+    test.yolov5_detect(source='C:/Users/user/Desktop/ceshi/',
                    save_dir='C:/ML/RFUAV/res/',
-                   weight_path='C:/ML/YOLO/v5/yolov5sr/yolov5-master/weights/stage1_30.pt'
+                   weight_path='E:/Drone_dataset/RFUAV/yolotest/weights/best.pt'
                    )
 
 if __name__ == '__main__':
