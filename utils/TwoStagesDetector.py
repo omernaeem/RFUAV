@@ -1,15 +1,13 @@
-import torch
 import os
 import glob
-from torchvision import transforms
-from PIL import Image, ImageDraw, ImageFont
-import time
+from PIL import Image
+import cv2
 from graphic.RawDataProcessor import generate_images
 import imageio
 from logger import colorful_logger
 import json
 
-from benchmark import Classify_Model, Detection_Model, get_key_from_value, is_valid_file, raw_data_ext, image_ext
+from benchmark import Classify_Model, Detection_Model, is_valid_file, raw_data_ext, image_ext
 
 
 # 二阶段模型的一个数据流处理类，提供公共接口
@@ -21,22 +19,21 @@ class TwoStagesDetector:
         2.解析cfg，初始化模型
         """
         self.logger = colorful_logger('Inference')
-        det, cla, save_path, target_dir = self.load(cfg)
+        det, cla, save_path, target_dir = load_model_from_json(cfg)
         self.det = det
         self.cla = cla
         self.save_path = save_path
         self.target_dir = target_dir
 
         if not cla and det:
-            self.DroneDetector()
+            self.DroneDetector(cfg=det)
         elif not det and cla:
             self.DroneClassifier(cfg=cla['cfg'], weight_path=cla['weight_path'], save=True)
         elif det and cla:
-            self.DroneDetector(cfg='')
+            self.DroneDetector(cfg=det)
             self.DroneClassifier(cfg=cla['cfg'], weight_path=cla['weight_path'], save=True)
         else:
             raise ValueError("No model is selected")
-
 
         if not os.path.exists(save_path):
             os.mkdir(save_path)
@@ -67,47 +64,45 @@ class TwoStagesDetector:
         elif is_valid_file(target_dir, raw_data_ext):
             self.RawdataProcess(target_dir)
 
-    def load(self, cfg):
-        """load cfg from .json
-        :return:
-        """
-        with open(cfg, 'r') as f:
-            _ = json.load(f)
-            return _['detector'] if 'detector' in _ else None, _['classifier'] if 'classifier' in _ else None, _['target_dir'], _['save_dir']
+    def ImgProcessor(self, source, save=True):
 
-    def ImgProcessor(self, source):
-        """
-         Performs inference on spectromgram data.
+        if self.S1.S1model:
+            res = self.S1.S1model.inference(source=source, save_dir='buffer')
+            if not self.S2model:
+                if save:
+                    cv2.imwrite(self.save_path, res)
+                else:
+                    return res
 
-        Parameters:
-        - source (str): Path to the image.
-        """
+        if self.S2model:
+            name = os.path.basename(source)[:-4]
+            origin_image = Image.open(source).convert('RGB')
+            preprocessed_image = self.S2model.preprocess(source)
 
-        start_time = time.time()
+            probability, predicted_class_name = self.S2model.forward(preprocessed_image)
 
-        name = os.path.basename(source)[:-4]
-        origin_image = Image.open(source).convert('RGB')
-        preprocessed_image = self.preprocess(source)
+            if not self.S1.S1model:
+                res = self.S2model.add_result(res=predicted_class_name,
+                                              probability=predicted_class_name,
+                                              image=origin_image)
+                if save:
+                    res.save(os.path.join(self.save_path, name + '.jpg'))
+                else:
+                    return res
 
-        temp = self.DroneClassifier.inference(preprocessed_image)
+            else:
+                # 加一个opencv格式图像到PIL图像的过程
+                res = put_res_on_img(res, predicted_class_name, probability=probability)
 
-        probabilities = torch.softmax(temp, dim=1)
+                cv2.imshow('res', res)
+                cv2.waitKey(0)
+                cv2.destroyAllWindows()
 
-        predicted_class_index = torch.argmax(probabilities, dim=1).item()
-        predicted_class_name = get_key_from_value(self.cfg['class_names'], predicted_class_index)
-
-        end_time = time.time()
-        self.logger.log_with_color(f"Inference time: {(end_time - start_time) / 100 :.8f} sec")
-        self.logger.log_with_color(f"{source} contains Drone: {predicted_class_name}, "
-                                   f"confidence: {probabilities[0][predicted_class_index].item() * 100 :.2f} %,"
-                                   f" start saving result")
-
-        if self.save:
-            res = self.add_result(res=predicted_class_name,
-                                  probability=probabilities[0][predicted_class_index].item() * 100,
-                                  image=origin_image)
-
-            res.save(os.path.join(self.save_path, name + '.jpg'))
+                print('test')
+                if save:
+                    cv2.imwrite(self.save_path, res)
+                else:
+                    return res
 
     def RawdataProcess(self, source):
         """
@@ -121,84 +116,25 @@ class TwoStagesDetector:
         name = os.path.splitext(os.path.basename(source))
 
         for image in images:
-            temp = self.model(self.preprocess(image))
-
-            probabilities = torch.softmax(temp, dim=1)
-
-            predicted_class_index = torch.argmax(probabilities, dim=1).item()
-            predicted_class_name = get_key_from_value(self.cfg['class_names'], predicted_class_index)
-
-            _ = self.add_result(res=predicted_class_name,
-                                probability=probabilities[0][predicted_class_index].item() * 100,
-                                image=image)
+            _ = self.ImgProcessor(image, save=False)
             res.append(_)
 
         imageio.mimsave(os.path.join(self.save_path, name + '.mp4'), res, fps=5)
 
-    def add_result(self,
-                   res,
-                   image,
-                   position=(40, 40),
-                   font="arial.ttf",
-                   font_size=45,
-                   text_color=(255, 0, 0),
-                   probability=0.0
-                   ):
-        """
-        Adds the inference result to the image.
-
-        Parameters:
-        - res (str): Inference result.
-        - image (PIL.Image): Input image.
-        - position (tuple): Position to add the text.
-        - font (str): Font file path.
-        - font_size (int): Font size.
-        - text_color (tuple): Text color.
-        - probability (float): Confidence probability.
-
-        Returns:
-        - image (PIL.Image): Image with added result.
-        """
-        draw = ImageDraw.Draw(image)
-        font = ImageFont.truetype(font, font_size)
-        draw.text(position, res + f" {probability:.2f}%", fill=text_color, font=font)
-
-        return image
-
-    def preprocess(self, img):
-
-        transform = transforms.Compose([
-            transforms.Resize((self.cfg['image_size'], self.cfg['image_size'])),
-            transforms.ToTensor(),
-        ])
-
-        image = Image.open(img).convert('RGB')
-        preprocessed_image = transform(image)
-
-        preprocessed_image = preprocessed_image.to(self.device)
-        preprocessed_image = preprocessed_image.unsqueeze(0)
-
-        return preprocessed_image
-
     def DroneDetector(self, cfg):
-        """单独的发现流程
+        """第一阶段模型初始化
 
         :return:
         """
-        self.S1 = Detection_Model(cfg='E:/Drone_dataset/RFUAV/yolotest/weights/best.pt')
-        """
-        self.S1.S1model.inference(source='C:/Users/user/Desktop/ceshi/',
-                   save_dir='C:/ML/RFUAV/res/',
-                   )
-        """
+        self.S1 = Detection_Model(cfg)
 
 
     def DroneClassifier(self, cfg, weight_path, save=True):
-        """#单独的分类流程
+        """第二阶段模型初始化
 
         :return:
         """
-        self.S2model = Classify_Model(cfg=cfg, weight_path=weight_path, save=save)
+        self.S2model = Classify_Model(cfg=cfg, weight_path=weight_path)
         # self.S2model._inference()
 
 
@@ -212,6 +148,36 @@ class TwoStagesDetector:
         """
         logger = colorful_logger('Inference')
         return logger
+
+
+def load_model_from_json(cfg):
+    """load cfg from .json
+    :return:
+    """
+    with open(cfg, 'r') as f:
+        _ = json.load(f)
+        return _['detector'] if 'detector' in _ else None, _['classifier'] if 'classifier' in _ else None, _['save_dir'], _['target_dir']
+
+
+def put_res_on_img(img,
+                   text,
+                   probability=0.0,
+                   position=(20, 60),
+                   font_scale=1,
+                   color=(0, 0, 0),
+                   thickness=3):
+
+    # 在图片上添加文字
+    cv2.putText(img=img,
+                text=text + f" {probability:.2f}%",
+                org=position,
+                fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                fontScale=font_scale,
+                color=color,
+                thickness=thickness,
+                lineType=cv2.LINE_AA)
+
+    return img
 
 
 # for test ------------------------------------------------------------------------------------------------------------
