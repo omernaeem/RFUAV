@@ -1,0 +1,19 @@
+batch_size: 8
+class_names:
+  DJIAVATA2: 0
+  DJIFPVCOMBO: 1
+  DJIMAVIC3PRO: 2
+  DJIMINI3: 3
+  DJIMINI4PRO: 4
+device: cuda
+image_size: 640
+lr: 0.0001
+model: resnet18
+num_classes: 5
+num_epochs: 150
+optimizer: None
+save_path: E:\Drone_dataset\RFUAV\augmentation_exp1_MethodSelect\3.dataset-origin+20dB_defaultcolor_usingAG\exp\1.ResNet18
+shuffle: true
+train: E:\Drone_dataset\RFUAV\augmentation_exp1_MethodSelect\3.dataset-origin+20dB_defaultcolor_usingAG\dataset_aug\train
+val: E:\Drone_dataset\RFUAV\augmentation_exp1_MethodSelect\3.dataset-origin+20dB_defaultcolor_usingAG\dataset_aug\valid
+weights: None

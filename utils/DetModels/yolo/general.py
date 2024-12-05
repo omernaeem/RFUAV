@@ -1,4 +1,3 @@
-# YOLOv5 🚀 by Ultralytics, AGPL-3.0 license
 """
 General utils
 """

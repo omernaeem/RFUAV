@@ -106,7 +106,6 @@ def run(
         task='val',  # train, val, test, speed or study
         device='',  # cuda device, i.e. 0 or 0,1,2,3 or cpu
         workers=8,  # max dataloader workers (per RANK in DDP mode)
-        single_cls=False,  # treat as single-class dataset
         augment=False,  # augmented inference
         verbose=False,  # verbose output
         save_txt=False,  # save results to *.txt
@@ -158,13 +157,13 @@ def run(
     model.eval()
     cuda = device.type != 'cpu'
     is_coco = isinstance(data.get('val'), str) and data['val'].endswith(f'coco{os.sep}val2017.txt')  # COCO dataset
-    nc = 1 if single_cls else int(data['nc'])  # number of classes
+    nc = int(data['nc'])  # number of classes
     iouv = torch.linspace(0.5, 0.95, 10, device=device)  # iou vector for mAP@0.5:0.95
     niou = iouv.numel()
 
     # Dataloader
     if not training:
-        if pt and not single_cls:  # check --weights are trained on --data
+        if pt:  # check --weights are trained on --data
             ncm = model.model.nc
             assert ncm == nc, f'{weights} ({ncm} classes) trained on different --data than what you passed ({nc} ' \
                               f'classes). Pass correct combination of --weights and --data that are trained together.'
@@ -175,7 +174,6 @@ def run(
                                        imgsz,
                                        batch_size,
                                        stride,
-                                       single_cls,
                                        pad=pad,
                                        rect=rect,
                                        workers=workers,
@@ -221,7 +219,7 @@ def run(
                                         iou_thres,
                                         labels=lb,
                                         multi_label=True,
-                                        agnostic=single_cls,
+                                        agnostic=False,
                                         max_det=max_det)
 
         # Metrics
@@ -240,8 +238,6 @@ def run(
                 continue
 
             # Predictions
-            if single_cls:
-                pred[:, 5] = 0
             predn = pred.clone()
             scale_boxes(im[si].shape[1:], predn[:, :4], shape, shapes[si][1])  # native-space pred
 

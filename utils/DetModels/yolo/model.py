@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-from copy import deepcopy
 from .common import *
 from .basic import Detect, time_sync
 from .torch_utils import initialize_weights, make_divisible, scale_img

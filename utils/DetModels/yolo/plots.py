@@ -1,14 +1,13 @@
-# YOLOv5 🚀 by Ultralytics, AGPL-3.0 license
 """
 Plotting utils
 """
-
 import contextlib
 import math
 import os
 from copy import copy
 from pathlib import Path
 from urllib.error import URLError
+
 
 import cv2
 import matplotlib

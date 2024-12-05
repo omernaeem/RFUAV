@@ -32,7 +32,6 @@ def create_dataloader(path,
                       imgsz,
                       batch_size,
                       stride,
-                      single_cls=False,
                       hyp=None,
                       augment=False,
                       cache=False,
@@ -57,7 +56,6 @@ def create_dataloader(path,
             hyp=hyp,  # hyperparameters
             rect=rect,  # rectangular batches
             cache_images=cache,
-            single_cls=single_cls,
             stride=int(stride),
             pad=pad,
             image_weights=image_weights,
@@ -95,7 +93,6 @@ class LoadImagesAndLabels(Dataset):
                  rect=False,
                  image_weights=False,
                  cache_images=False,
-                 single_cls=False,
                  stride=32,
                  pad=0.0,
                  min_items=0,
@@ -189,8 +186,6 @@ class LoadImagesAndLabels(Dataset):
                 self.labels[i] = label[j]
                 if segment:
                     self.segments[i] = [segment[idx] for idx, elem in enumerate(j) if elem]
-            if single_cls:  # single-class training, merge all classes into 0
-                self.labels[i][:, 0] = 0
 
         # Rectangular Training
         if self.rect:
