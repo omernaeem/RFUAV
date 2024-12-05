@@ -16,7 +16,6 @@ from abc import abstractmethod
 from .metrics.base_metric import EVAMetric
 import sys
 
-
 from tqdm import tqdm
 from pathlib import Path
 from utils.DetModels.yolo import DetectionModel
@@ -27,17 +26,17 @@ import math
 import time
 from datetime import datetime
 from copy import deepcopy
-from utils.DetModels.yolo.general import (check_file, check_yaml, yaml_save,init_seeds, check_dataset,
-                                          check_suffix, check_amp, check_img_size, labels_to_class_weights, labels_to_image_weights)
-from utils.DetModels.yolo.basic import increment_path, colorstr
-from utils.DetModels.yolo.torch_utils import (select_device, torch_distributed_zero_first,
-                                              smart_optimizer, de_parallel, EarlyStopping, ModelEMA)
+from utils.DetModels.yolo.general import (yaml_save, init_seeds, check_dataset,check_suffix,
+                                          check_img_size, labels_to_class_weights, labels_to_image_weights)
+from utils.DetModels.yolo.basic import colorstr, yolo_init
+from utils.DetModels.yolo.torch_utils import (torch_distributed_zero_first,smart_optimizer,
+                                              de_parallel, EarlyStopping, ModelEMA, select_device)
 from utils.DetModels.yolo.dataloader import create_dataloader
 from utils.DetModels.yolo.autoanchor import check_anchors
-from utils.DetModels.yolo.callbacks import Callbacks
 from utils.DetModels.yolo.loss import ComputeLoss
 import utils.DetModels.yolo.val as validate
 from utils.DetModels.yolo.metrics import fitness
+from utils.DetModels.yolo.callbacks import Callbacks
 
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -45,7 +44,8 @@ METRIC = os.path.join(current_dir, './metrics')
 sys.path.append(METRIC)
 TQDM_BAR_FORMAT = '{l_bar}{bar:10}{r_bar}'
 
-class Basetrainer():
+
+class Basetrainer:
 
     """
     Base trainer class for initializing the model, dataset, optimizer, and performing training and validation.
@@ -429,20 +429,31 @@ class CustomTrainer(Basetrainer):
             self.save_model(metrics, epoch)
 
 
-# for test--------------------------------------------------------------------------------------------------------------
 class DetTrainer:
-    def __int__(self):
-        pass
-    def train(self, hyp, opt, callbacks, device):
+    def __init__(self, model_name):
+        if model_name == 'yolo':
+            self.train = self.yolo_train
+        elif model_name == 'faster_rcnn':
+            self.train = self.faster_rcnn_train
 
-        save_dir, epochs, batch_size, weights, single_cls, evolve, data, cfg, resume, noval, nosave, workers, freeze = \
-            Path(opt.save_dir), opt.epochs, opt.batch_size, opt.weights, opt.single_cls, opt.evolve, opt.data, opt.cfg, \
-                opt.resume, opt.noval, opt.nosave, opt.workers, opt.freeze
-
-        # Directories
-        w = save_dir / 'weights'  # weights dir
-        (w.parent if evolve else w).mkdir(parents=True, exist_ok=True)  # make dir
-        last, best = w / 'last.pt', w / 'best.pt'
+    def yolo_train(self, save_dir):
+        opt = yolo_init(known=True)  # modify the args in yolo_init if you need to train a custom model
+        hyp = opt.hyp
+        callbacks = Callbacks()
+        device = select_device(opt.device, batch_size=opt.batch_size)
+        epochs, batch_size, weights, evolve, data, cfg, noval, nosave, workers, freeze = opt.epochs, opt.batch_size, \
+        opt.weights, opt.evolve, opt.data, opt.cfg, opt.noval, opt.nosave, opt.workers, opt.freeze
+        if save_dir[-1] != '/':
+            # Directories
+            save_dir = Path(save_dir)
+            w = save_dir / 'weights'  # weights dir
+            (w.parent if evolve else w).mkdir(parents=True, exist_ok=True)  # make dir
+            last, best = w / 'last.pt', w / 'best.pt'
+        else:
+            save_dir = Path(save_dir[:-1])
+            w = save_dir / 'weights'  # weights dir
+            (w.parent if evolve else w).mkdir(parents=True, exist_ok=True)  # make dir
+            last, best = w / 'last.pt', w / 'best.pt'
 
         # Hyperparameters
         if isinstance(hyp, str):
@@ -461,14 +472,14 @@ class DetTrainer:
         with torch_distributed_zero_first(-1):
             data_dict = check_dataset(data)  # check if None
         train_path, val_path = data_dict['train'], data_dict['val']
-        nc = 1 if single_cls else int(data_dict['nc'])  # number of classes
-        names = {0: 'item'} if single_cls and len(data_dict['names']) != 1 else data_dict['names']  # class names
+        nc = int(data_dict['nc'])  # number of classes
+        names = data_dict['names']  # class names
 
         # Model
         check_suffix(weights, '.pt')  # check weights
 
         model = DetectionModel(cfg, ch=3, nc=nc, anchors=hyp.get('anchors')).to(device)  # create
-        amp = check_amp(model)  # check AMP
+        amp = False  # check AMP
 
         # Freeze
         freeze = [f'model.{x}.' for x in (freeze if len(freeze) > 1 else range(freeze[0]))]  # layers to freeze
@@ -498,11 +509,10 @@ class DetTrainer:
         best_fitness, start_epoch = 0.0, 0
 
         # Trainloader
-        train_loader, dataset = create_dataloader(train_path,
-                                                  imgsz,
-                                                  batch_size,
-                                                  gs,
-                                                  single_cls,
+        train_loader, dataset = create_dataloader(path=train_path,
+                                                  imgsz=imgsz,
+                                                  batch_size=batch_size,
+                                                  stride=gs,
                                                   hyp=hyp,
                                                   augment=True,
                                                   cache=None if opt.cache == 'val' else opt.cache,
@@ -519,11 +529,10 @@ class DetTrainer:
         assert mlc < nc, f'Label class {mlc} exceeds nc={nc} in {data}. Possible class labels are 0-{nc - 1}'
 
         # Process 0
-        val_loader = create_dataloader(val_path,
-                                       imgsz,
-                                       batch_size // 2,
-                                       gs,
-                                       single_cls,
+        val_loader = create_dataloader(path=val_path,
+                                       imgsz=imgsz,
+                                       batch_size=batch_size // 2,
+                                       stride=gs,
                                        hyp=hyp,
                                        cache=None if noval else opt.cache,
                                        rect=True,
@@ -532,10 +541,8 @@ class DetTrainer:
                                        pad=0.5,
                                        prefix=colorstr('val: '))[0]
 
-        if not resume:
-            if not opt.noautoanchor:
-                check_anchors(dataset, model=model, thr=hyp['anchor_t'], imgsz=imgsz)  # run AutoAnchor
-            model.half().float()  # pre-reduce anchor precision
+        check_anchors(dataset, model=model, thr=hyp['anchor_t'], imgsz=imgsz)  # run AutoAnchor
+        model.half().float()  # pre-reduce anchor precision
 
         callbacks.run('on_pretrain_routine_end', labels, names)
 
@@ -600,7 +607,6 @@ class DetTrainer:
                 # Warmup
                 if ni <= nw:
                     xi = [0, nw]  # x interp
-                    # compute_loss.gr = np.interp(ni, xi, [0.0, 1.0])  # iou loss ratio (obj_loss = 1.0 or iou)
                     accumulate = max(1, np.interp(ni, xi, [1, nbs / batch_size]).round())
                     for j, x in enumerate(optimizer.param_groups):
                         # bias lr falls from 0.1 to lr0, all other lrs rise from 0.0 to lr0
@@ -647,12 +653,10 @@ class DetTrainer:
                 callbacks.run('on_train_batch_end', model, ni, imgs, targets, paths, list(mloss))
                 if callbacks.stop_training:
                     return
-                # end batch ------------------------------------------------------------------------------------------------
 
             # Scheduler
             lr = [x['lr'] for x in optimizer.param_groups]  # for loggers
             scheduler.step()
-
 
             callbacks.run('on_train_epoch_end', epoch=epoch)
             ema.update_attr(model, include=['yaml', 'nc', 'hyp', 'names', 'stride', 'class_weights'])
@@ -663,7 +667,6 @@ class DetTrainer:
                                                 imgsz=imgsz,
                                                 half=amp,
                                                 model=ema.ema,
-                                                single_cls=single_cls,
                                                 dataloader=val_loader,
                                                 save_dir=save_dir,
                                                 plots=False,
@@ -703,26 +706,18 @@ class DetTrainer:
             if stop:
                 break  # must break all DDP ranks
 
-            # end epoch ----------------------------------------------------------------------------------------------------
-        # end training -----------------------------------------------------------------------------------------------------
-
         print(f'\n{epoch - start_epoch + 1} epochs completed in {(time.time() - t0) / 3600:.3f} hours.')
         callbacks.run('on_train_end', last, best, epoch, results)
 
         torch.cuda.empty_cache()
         return results
 
-
-    def val(self):
+    #ToDo faster rcnn 的训练
+    def faster_rcnn_train(self, save_dir):
         pass
-    def dataloader(self):
-        pass
-    def save_model(self, metrics, epoch):
-
-        self.logger.log_with_color(f"Saving model at epoch {epoch}")
-        torch.save(self.model.state_dict(), os.path.join(self.save_path, f'{epoch}.pth'))
 
 
+# for test--------------------------------------------------------------------------------------------------------------
 def show_img_in_dataloader(images):
     """Imshow for Tensor."""
     images = images.numpy().transpose((1, 2, 0))
