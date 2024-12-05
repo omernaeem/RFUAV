@@ -118,20 +118,14 @@ class Classify_Model(nn.Module):
         elif is_valid_file(source, raw_data_ext):
             self.RawdataProcess(source)
 
-    # ToDo 给外部用的接口
-    def _inference(self, img):
-        name = os.path.basename(img)[:-4]
-        origin_image = Image.open(img).convert('RGB')
-        preprocessed_image = self.preprocess(img)
+    def forward(self, img):
 
-        temp = self.model(preprocessed_image)
-
+        temp = self.model(img)
         probabilities = torch.softmax(temp, dim=1)
-
         predicted_class_index = torch.argmax(probabilities, dim=1).item()
         predicted_class_name = get_key_from_value(self.cfg['class_names'], predicted_class_index)
-
-        return
+        probability = probabilities[0][predicted_class_index].item() * 100
+        return probability, predicted_class_name
 
     @property
     def load_model(self):
@@ -324,15 +318,12 @@ class Detection_Model:
 
     """
     def __init__(self, cfg):
-        """做一个解析cfg的功能，然后按照cfg指定选模型
 
-        :param cfg:
-
-        """
         model_name = cfg['model_name']
         weight_path = cfg['weight_path']
+
         if model_name == 'yolov5':
-            self.S1model = YOLOV5S(weights=cfg)
+            self.S1model = YOLOV5S(weights=weight_path)
             self.S1model.inference = self.yolov5_detect
 
         # ToDo
@@ -340,7 +331,6 @@ class Detection_Model:
             self.S1model = YOLOV5S(weights=cfg)
             self.S1model.inference = self.yolov5_detect
 
-    #ToDo 给外部用的接口
     def yolov5_detect(self,
                       source='../example/source/',
                       save_dir='../res',
@@ -400,7 +390,10 @@ class Detection_Model:
                 # Stream results
                 im0 = annotator.result()
                 # Save results (image with detections)
-                cv2.imwrite(save_path, im0)
+                if save_dir == 'buffer':
+                    return im0
+                else:
+                    cv2.imwrite(save_path, im0)
 
         # Print results
         print(f"Results saved to {colorstr('bold', save_dir)}")
