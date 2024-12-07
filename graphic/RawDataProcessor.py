@@ -7,7 +7,8 @@ from io import BytesIO
 import imageio
 from PIL import Image
 from typing import Union
-
+from scipy.fft import fft
+import cv2
 
 class RawDataProcessor:
     """transform raw data into images, video, and save the result locally
@@ -122,7 +123,7 @@ def generate_images(datapack: str = None,
         extent = [t.min(), t.max(), f.min(), f.max()]
 
         plt.figure()
-        plt.imshow(aug, extent=extent, aspect='auto', origin='lower')
+        plt.imshow(aug, extent=extent, aspect='auto', origin='lower', cmap='jet')
         plt.axis('off')
         plt.subplots_adjust(left=0, right=1, bottom=0, top=1, wspace=None, hspace=None)
 
@@ -309,8 +310,8 @@ def DrawandSave(
     for file in re_files:
         packlist = os.listdir(os.path.join(file_path, file))
         for pack in packlist:
-            check_folder(os.path.join(os.path.join(fig_save_path + file), pack))
-            generate_images(datapack=os.path.join(os.path.join(file_path, file), pack),
+            check_folder(os.path.join(fig_save_path, file, pack))
+            generate_images(datapack=os.path.join(file_path, file, pack),
                             file=file,
                             pack=pack,
                             fs=fs,
@@ -370,16 +371,108 @@ def STFT(data,
     return f, t, Zxx
 
 
+def waterfall_spectrogram(datapack, fft_size, fs, location, time_scale):
+    """
+    绘制带颜色的瀑布图，并保存每一帧为图片
+    :param datapack: IQ信号数据 (复数形式)
+    :param fft_size: 每一帧的大小
+    :param fs: 采样频率
+    :param location: 保存图像的目录
+    """
+    data = np.fromfile(datapack, dtype=np.float32)
+    data = data[::2] + data[1::2] * 1j
+
+    if location == 'buffer':
+        images = []
+    else:
+        if not os.path.exists(location):
+            os.makedirs(location)
+
+    num_frames = len(data) // fft_size
+    window = np.hanning(fft_size)
+    spectrogram = []
+
+    pack_gap = 0
+    j = 0
+    gap = 150
+    # 遍历每一帧数据
+    for i in range(num_frames-50):
+        # 获取当前帧的IQ数据，应用窗函数
+        start_idx = i * (fft_size)
+        frame_data = data[start_idx:start_idx + fft_size] * window
+
+        # 进行FFT转换到频域
+        spectrum = fft(frame_data)
+        spectrum = np.fft.fftshift(spectrum)  # 将频谱的零频率居中
+        magnitude = np.abs(spectrum)  # 获取频谱的幅度
+        if i > time_scale:
+            spectrogram = spectrogram[1:]
+            spectrogram = np.concatenate((spectrogram, magnitude.reshape(1, fft_size)), axis=0)
+
+        else:
+            spectrogram.append(magnitude)
+
+        pack_gap += 1
+
+        if i == time_scale:
+            # 绘制瀑布图
+            spectrogram = np.array(spectrogram)
+            plt.figure()
+            plt.imshow(np.log10(spectrogram.T), aspect='auto', cmap='jet', origin='lower',
+                       extent=[0, num_frames * (fft_size) / fs, -fs / 2, fs / 2])
+            plt.subplots_adjust(left=0, right=1, bottom=0, top=1, wspace=None, hspace=None)
+            plt.axis('off')
+
+            if location != 'buffer':
+                # 保存瀑布图
+                plt.savefig(os.path.join(location, str(j) + 'waterfall_spectrogram.jpg'), dpi=300)
+                plt.close()
+            else:
+                buffer = BytesIO()
+                plt.savefig(buffer, format='png', dpi=300)
+                plt.close()
+                buffer.seek(0)
+                images.append(buffer)
+
+            j += 1
+            pack_gap = 0
+
+        if i > time_scale and pack_gap == gap:
+            # 绘制瀑布图
+            plt.figure()
+            plt.imshow(np.log10(spectrogram.T), aspect='auto', cmap='jet', origin='lower',
+                       extent=[0, num_frames * (fft_size) / fs, -fs / 2, fs / 2])
+            plt.axis('off')
+            plt.subplots_adjust(left=0, right=1, bottom=0, top=1, wspace=None, hspace=None)
+
+            if location != 'buffer':
+                # 保存瀑布图
+                plt.savefig(os.path.join(location, str(j) + 'waterfall_spectrogram.jpg'), dpi=300)
+                plt.close()
+            else:
+                plt.savefig(buffer, format='png', dpi=300)
+                plt.close()
+                buffer.seek(0)
+                images.append(buffer)
+
+            j += 1
+            pack_gap = 0
+
+    return images
+
+
 # Usage----------------------------------------------------------------------------------------
 def main():
+    """
     test = RawDataProcessor()
-    test.TransRawDataintoSpectrogram(fig_save_path='E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/images/Py/',
-                                     data_path='E:/Drone_dataset/RFUAV/rawdata/',
+    test.TransRawDataintoSpectrogram(fig_save_path='E:/Drone_dataset/RFUAV/augmentation_exp2_allDrone/image/py/Py-jet/',
+                                     data_path='E:/Drone_dataset/RFUAV/test/',
                                      sample_rate=100e6,
                                      stft_point=1024,
                                      duration_time=0.1,
                                      )
-
+    :return:
+    """
     """
     test.ShowSpectrogram(data_path='E:/Drone_dataset/RFUAV/crop_data/DJFPVCOMBO/DJFPVCOMBO-16db-90db_5760m_100m_10m/DJFPVCOMBO-16db-90db_5760m_100m_10m_0-2s.dat',
                          drone_name='DJ FPV COMBO',
