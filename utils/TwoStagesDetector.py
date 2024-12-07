@@ -2,10 +2,10 @@ import os
 import glob
 from PIL import Image
 import cv2
-from graphic.RawDataProcessor import generate_images
-import imageio
+from graphic.RawDataProcessor import waterfall_spectrogram
 from logger import colorful_logger
 import json
+import numpy as np
 
 from benchmark import Classify_Model, Detection_Model, is_valid_file, raw_data_ext, image_ext
 
@@ -67,7 +67,12 @@ class TwoStagesDetector:
     def ImgProcessor(self, source, save=True):
 
         if self.S1.S1model:
-            res = self.S1.S1model.inference(source=source, save_dir='buffer')
+            if save:
+                res = self.S1.S1model.inference(source=source, save_dir='buffer')
+            else:
+                temp = np.asarray(bytearray(source.read()), dtype=np.uint8)
+                temp = cv2.imdecode(temp, cv2.IMREAD_COLOR)
+                res = self.S1.S1model.inference(source=temp)
             if not self.S2model:
                 if save:
                     cv2.imwrite(self.save_path, res)
@@ -75,7 +80,7 @@ class TwoStagesDetector:
                     return res
 
         if self.S2model:
-            name = os.path.basename(source)[:-4]
+            if save: name = os.path.basename(source)[:-4]
             origin_image = Image.open(source).convert('RGB')
             preprocessed_image = self.S2model.preprocess(source)
 
@@ -91,14 +96,8 @@ class TwoStagesDetector:
                     return res
 
             else:
-                # 加一个opencv格式图像到PIL图像的过程
                 res = put_res_on_img(res, predicted_class_name, probability=probability)
 
-                cv2.imshow('res', res)
-                cv2.waitKey(0)
-                cv2.destroyAllWindows()
-
-                print('test')
                 if save:
                     cv2.imwrite(self.save_path, res)
                 else:
@@ -111,15 +110,29 @@ class TwoStagesDetector:
         Parameters:
         - source (str): Path to the raw data.
         """
-        res = []
-        images = generate_images(source)
-        name = os.path.splitext(os.path.basename(source))
 
+        res = []
+        #ToDo
+        images = waterfall_spectrogram(source, fft_size=256, fs=100e6, location='buffer', time_scale=39062)
+        name = os.path.splitext(os.path.basename(source))
+        images = images[:50]
         for image in images:
+
             _ = self.ImgProcessor(image, save=False)
             res.append(_)
 
-        imageio.mimsave(os.path.join(self.save_path, name + '.mp4'), res, fps=5)
+        frame = cv2.imread(_[0])
+        height, width, layers = frame.shape
+        video_name = 'output_video.avi'
+
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        video = cv2.VideoWriter(video_name, fourcc, 30, (width, height))
+
+        for image in images:
+            video.write(cv2.imread(os.path.join(self.save_path, image)))
+
+        cv2.destroyAllWindows()
+        video.release()
 
     def DroneDetector(self, cfg):
         """第一阶段模型初始化
