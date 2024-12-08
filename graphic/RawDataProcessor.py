@@ -9,6 +9,7 @@ from PIL import Image
 from typing import Union
 from scipy.fft import fft
 import cv2
+import time
 
 class RawDataProcessor:
     """transform raw data into images, video, and save the result locally
@@ -391,12 +392,13 @@ def waterfall_spectrogram(datapack, fft_size, fs, location, time_scale):
     num_frames = len(data) // fft_size
     window = np.hanning(fft_size)
     spectrogram = []
+    start = time.time()
 
     pack_gap = 0
     j = 0
     gap = 150
     # 遍历每一帧数据
-    for i in range(num_frames-50):
+    for i in range(num_frames-20):
         # 获取当前帧的IQ数据，应用窗函数
         start_idx = i * (fft_size)
         frame_data = data[start_idx:start_idx + fft_size] * window
@@ -432,7 +434,17 @@ def waterfall_spectrogram(datapack, fft_size, fs, location, time_scale):
                 plt.savefig(buffer, format='png', dpi=300)
                 plt.close()
                 buffer.seek(0)
-                images.append(buffer)
+                images.append(BytesIO(buffer.getvalue()))
+
+                # for test
+                """
+                image_bytes = np.asarray(bytearray(buffer.read()), dtype=np.uint8)
+                image = cv2.imdecode(image_bytes, cv2.IMREAD_COLOR)
+                cv2.imshow('Image', image)
+                cv2.waitKey(0)
+                cv2.destroyAllWindows()        
+                """
+
 
             j += 1
             pack_gap = 0
@@ -450,14 +462,34 @@ def waterfall_spectrogram(datapack, fft_size, fs, location, time_scale):
                 plt.savefig(os.path.join(location, str(j) + 'waterfall_spectrogram.jpg'), dpi=300)
                 plt.close()
             else:
+                # buffer = BytesIO()
                 plt.savefig(buffer, format='png', dpi=300)
                 plt.close()
                 buffer.seek(0)
-                images.append(buffer)
+                images.append(BytesIO(buffer.getvalue()))
+
+                # for test
+                """
+                image_bytes = np.asarray(bytearray(buffer.read()), dtype=np.uint8)
+                image = cv2.imdecode(image_bytes, cv2.IMREAD_COLOR)
+                cv2.imshow('Image', image)
+                cv2.waitKey(0)
+                cv2.destroyAllWindows()        
+                """
 
             j += 1
             pack_gap = 0
 
+    # for test
+    """
+    image_bytes = images[2]
+    image = cv2.imdecode(image_bytes, cv2.IMREAD_COLOR)
+    cv2.imshow('Image', image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    """
+
+    print(f"plot spend {start - time.time()}")
     return images
 
 

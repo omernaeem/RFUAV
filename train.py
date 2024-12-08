@@ -5,7 +5,7 @@ from utils.trainer import CustomTrainer
 
 def main():
 
-    model = CustomTrainer(cfg='./configs/exp1.10_vit_l_16.yaml')
+    model = CustomTrainer(cfg='./configs/exp2.1_ResNet101.yaml')
     model.train()
 
     # train a custom signal detect model

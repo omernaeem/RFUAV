@@ -1,12 +1,12 @@
 {
     "detector": {
         "model_name": "yolov5",
-        "weight_path": "E:\\Drone_dataset\\RFUAV\\RFUAV.pt"
+        "weight_path": "C:\\ML\\RFUAV\\example\\detect\\RFUAV_stage1.pt"
     },
     "classifier": {
-        "weight_path": "E:\\Drone_dataset\\RFUAV\\augmentation_exp1_MethodSelect\\3.dataset-origin+20dB_defaultcolor_usingAG\\exp\\1.ResNet18\\best_model.pth",
-        "cfg": "../example/classify/ResNet18.yaml"
+        "weight_path": "C:\\ML\\RFUAV\\example\\classify\\ckpt\\stage2.pth",
+        "cfg": "C:\\ML\\RFUAV\\example\\classify\\ResNet101-stage2.yaml"
     },
-    "target_dir": "../example/source",
-    "save_dir": "../res"
+    "target_dir": "C:\\ML\\RFUAV\\example\\source",
+    "save_dir": "C:\\ML\\RFUAV\\res"
 }
