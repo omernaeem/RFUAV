@@ -6,6 +6,7 @@ from graphic.RawDataProcessor import waterfall_spectrogram
 from logger import colorful_logger
 import json
 import numpy as np
+import time
 
 from benchmark import Classify_Model, Detection_Model, is_valid_file, raw_data_ext, image_ext
 
@@ -68,8 +69,9 @@ class TwoStagesDetector:
 
         if self.S1.S1model:
             if save:
-                res = self.S1.S1model.inference(source=source, save_dir='buffer')
+                res = self.S1.S1model.inference(source=source, save_dir=self.target_dir)
             else:
+                source.seek(0)
                 temp = np.asarray(bytearray(source.read()), dtype=np.uint8)
                 temp = cv2.imdecode(temp, cv2.IMREAD_COLOR)
                 res = self.S1.S1model.inference(source=temp)
@@ -110,17 +112,19 @@ class TwoStagesDetector:
         Parameters:
         - source (str): Path to the raw data.
         """
-
+        start = time.time()
         res = []
+        test_times = 0
         #ToDo
         images = waterfall_spectrogram(source, fft_size=256, fs=100e6, location='buffer', time_scale=39062)
         name = os.path.splitext(os.path.basename(source))
-        images = images[:50]
         for image in images:
-
+            test_times += 1
             _ = self.ImgProcessor(image, save=False)
             res.append(_)
 
+        inf_time = time.time() - start
+        print(f"Inference time: {inf_time}")
         frame = cv2.imread(_[0])
         height, width, layers = frame.shape
         video_name = 'output_video.avi'
@@ -133,6 +137,8 @@ class TwoStagesDetector:
 
         cv2.destroyAllWindows()
         video.release()
+        video_time = time.time() - inf_time
+        print(f"Video time: {video_time}")
 
     def DroneDetector(self, cfg):
         """第一阶段模型初始化
