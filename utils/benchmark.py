@@ -8,11 +8,19 @@ from torchvision import transforms, datasets
 from PIL import Image, ImageDraw, ImageFont
 import time
 from graphic.RawDataProcessor import generate_images
+from io import BytesIO
 import imageio
 import sys
 import cv2
-from DetModels import YOLOV5S
-from DetModels.yolo.basic import LoadImages, Profile, Path, non_max_suppression, Annotator, scale_boxes, colorstr, Colors
+import numpy as np
+try:
+    from DetModels import YOLOV5S
+    from DetModels.yolo.basic import LoadImages, Profile, Path, non_max_suppression, Annotator, scale_boxes, colorstr, \
+        Colors ,letterbox
+
+except ImportError:
+    pass
+
 
 # Current directory and metric directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -22,9 +30,14 @@ sys.path.append(METRIC)
 sys.path.append(current_dir)
 sys.path.append('utils/DetModels/yolo')
 
-from metrics.base_metric import EVAMetric
-from torch.utils.data import DataLoader
+try:
+    from metrics.base_metric import EVAMetric
+    from torch.utils.data import DataLoader
+except ImportError:
+    pass
+
 from logger import colorful_logger
+
 
 # Supported image and raw data extensions
 image_ext = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff']
@@ -317,40 +330,51 @@ class Detection_Model:
     """做一个调模型的公共接口
 
     """
-    def __init__(self, cfg):
+    def __init__(self, cfg=None, model_name=None, weight_path=None):
+        if cfg:
+            model_name = cfg['model_name']
+            weight_path = cfg['weight_path']
 
-        model_name = cfg['model_name']
-        weight_path = cfg['weight_path']
+            if model_name == 'yolov5':
+                self.S1model = YOLOV5S(weights=weight_path)
+                self.S1model.inference = self.yolov5_detect
 
-        if model_name == 'yolov5':
-            self.S1model = YOLOV5S(weights=weight_path)
-            self.S1model.inference = self.yolov5_detect
+            # ToDo
+            elif model_name == 'faster_rcnn':
+                self.S1model = YOLOV5S(weights=weight_path)
+                self.S1model.inference = self.yolov5_detect
+        else:
+            if model_name == 'yolov5':
+                self.S1model = YOLOV5S(weights=weight_path)
+                self.S1model.inference = self.yolov5_detect
 
-        # ToDo
-        elif model_name == 'faster_rcnn':
-            self.S1model = YOLOV5S(weights=cfg)
-            self.S1model.inference = self.yolov5_detect
+            # ToDo
+            elif model_name == 'faster_rcnn':
+                self.S1model = YOLOV5S(weights=weight_path)
+                self.S1model.inference = self.yolov5_detect
 
     def yolov5_detect(self,
                       source='../example/source/',
                       save_dir='../res',
-                      weight_path='../example/detect/',
                       imgsz=(640, 640),
-                      conf_thres=0.25,
+                      conf_thres=0.6,
                       iou_thres=0.45,
                       max_det=1000,
                       line_thickness=3,
-                      hide_labels=False,
+                      hide_labels=True,
                       hide_conf=False,
                       ):
 
         color = Colors()
         detmodel = self.S1model
         stride, names = detmodel.stride, detmodel.names
-        dataset = LoadImages(source, img_size=imgsz, stride=stride)
+
         # Run inference
-        seen, windows, dt = 0, [], (Profile(), Profile(), Profile())
-        for path, im, im0s, s in dataset:
+        if isinstance(source, np.ndarray):
+            im0 = source
+            im = letterbox(im0, imgsz, stride=stride, auto=True)[0]  # padded resize
+            im = im.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
+            im = np.ascontiguousarray(im)  # contiguous
             im = torch.from_numpy(im).to(detmodel.device)
             im = im.float()  # uint8 to fp16/32
             im /= 255  # 0 - 255 to 0.0 - 1.0
@@ -363,13 +387,6 @@ class Detection_Model:
             pred = non_max_suppression(pred, conf_thres, iou_thres, agnostic=False, max_det=max_det)
             # Process predictions
             for i, det in enumerate(pred):  # per image
-                seen += 1
-                p, im0, frame = path, im0s.copy(), getattr(dataset, 'frame', 0)
-
-                res = {}  # Drone
-                p = Path(p)  # to Path
-                save_path = str(save_dir + p.name)  # im.jpg
-                s += '%gx%g ' % im.shape[2:]  # print string
                 annotator = Annotator(im0, line_width=line_thickness, example=str(names))
                 if len(det):
                     # Rescale boxes from img_size to im0 size
@@ -378,22 +395,63 @@ class Detection_Model:
                     # Print results
                     for c in det[:, 5].unique():
                         n = (det[:, 5] == c).sum()  # detections per class
-                        s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
-                        res[names[int(c)]] = int(n)
 
                     for *xyxy, conf, cls in reversed(det):
                         c = int(cls)  # integer class
                         label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
 
-                        annotator.box_label(xyxy, label, color=color(c+2, True))
+                        annotator.box_label(xyxy, label, color=color(c + 2, True))
 
                 # Stream results
                 im0 = annotator.result()
                 # Save results (image with detections)
-                if save_dir == 'buffer':
-                    return im0
-                else:
-                    cv2.imwrite(save_path, im0)
+            return im0
+
+        else:
+            dataset = LoadImages(source, img_size=imgsz, stride=stride)
+            seen, windows, dt = 0, [], (Profile(), Profile(), Profile())
+            for path, im, im0s, s in dataset:
+                im = torch.from_numpy(im).to(detmodel.device)
+                im = im.float()  # uint8 to fp16/32
+                im /= 255  # 0 - 255 to 0.0 - 1.0
+                if len(im.shape) == 3:
+                    im = im[None]  # expand for batch dim
+
+                # Inference
+                pred = detmodel(im)
+                # NMS
+                pred = non_max_suppression(pred, conf_thres, iou_thres, agnostic=False, max_det=max_det)
+                # Process predictions
+                for i, det in enumerate(pred):  # per image
+                    seen += 1
+                    p, im0, frame = path, im0s.copy(), getattr(dataset, 'frame', 0)
+
+                    p = Path(p)  # to Path
+                    save_path = str(save_dir + p.name)  # im.jpg
+                    s += '%gx%g ' % im.shape[2:]  # print string
+                    annotator = Annotator(im0, line_width=line_thickness, example=str(names))
+                    if len(det):
+                        # Rescale boxes from img_size to im0 size
+                        det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()
+
+                        # Print results
+                        for c in det[:, 5].unique():
+                            n = (det[:, 5] == c).sum()  # detections per class
+                            s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
+
+                        for *xyxy, conf, cls in reversed(det):
+                            c = int(cls)  # integer class
+                            label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
+
+                            annotator.box_label(xyxy, label, color=color(c+2, True))
+
+                    # Stream results
+                    im0 = annotator.result()
+                    # Save results (image with detections)
+                    if save_dir == 'buffer':
+                        return im0
+                    else:
+                        cv2.imwrite(save_path, im0)
 
         # Print results
         print(f"Results saved to {colorstr('bold', save_dir)}")
@@ -452,18 +510,20 @@ def get_key_from_value(d, value):
 def main():
 
     """
-    test = Model(cfg='E:/Train_log/RFUAV/exp1_test/config.yaml',
+    test = Classify_Model(cfg='E:/Train_log/RFUAV/exp1_test/config.yaml',
                  weight_path='E:/Train_log/RFUAV/exp1_test/ResNet_epoch_29.pth')
 
     test.inference(source='E:/FowardRes_log/RFUAV/1.code_check/exp1/source',
                    save_path='E:/FowardRes_log/RFUAV/1.code_check/exp1/res')
     # test.benchmark()
     """
-    test = Detection_Model('test')
+
+
+    test = Detection_Model(model_name='yolov5', weight_path='E:/Drone_dataset/RFUAV/RFUAV.pt')
     test.yolov5_detect(source='C:/Users/user/Desktop/ceshi/',
                    save_dir='C:/ML/RFUAV/res/',
-                   weight_path='E:/Drone_dataset/RFUAV/yolotest/weights/best.pt'
                    )
+
 
 if __name__ == '__main__':
     main()
