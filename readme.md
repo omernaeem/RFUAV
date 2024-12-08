@@ -2,9 +2,15 @@
 ## Abstract
 The official repository of our paper: ”RFUAV: A Benchmark Dataset for Unmanned Aerial Vehicle Detection and Identification“. RFUAV provides a comprehensive benchmark dataset include raw frequency signal data and spectromgrams for drone detection and indentification tasks.  
 The raw data in dataset include 35 of different types of drone under high signal-to-noise ratio (SNR). This dataset is available to all researchers who use RF to analyze drones. You can analyze the data through Deep Learning methods we provided or any traditional signal processing methods like Decode, Demodulation, and FFT. The detailed information of the dataset is shown in the following figure.
-  ![pic.1](./abstract/FSM.png)
-We analyzed property of each drone in the dataset include: Frequency Hopping signal bandwidth (FHSBW), Frequency Hopping Signal Duration time (FHSDT), Video Transmitted Signal Bandwidth (VSBW), Frequency Hopping Signal Duty Cycle (FHSDC), and Frequency Hopping Signal pattern period (FVFPP). And plotted their distribution as shown below. More detailed information is presented in our paper.
-  ![pic.2](./abstract/FVFPP.png)
+  ![pic.1](./abstract/FSM2.png)
+We analyzed property of each drone in the dataset include: Frequency Hopping signal bandwidth (FHSBW), Frequency Hopping Signal Duration time (FHSDT), Video Transmitted Signal Bandwidth (VSBW), Frequency Hopping Signal Duty Cycle (FHSDC), and Frequency Hopping Signal pattern period (FHSPP). And plotted their distribution as shown below. More detailed information is presented in our paper.
+  ![pic.2](./abstract/FVFPP2.png)
+with the dataset you can achieve:
+  <video width="600" controls>
+    <source src="./abstract/output_video.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+
 ## 1.Quick start
 <details>
 <summary>installtion</summary>
@@ -43,7 +49,7 @@ You can simply use the provided code to check the spectromgram of a specialized 
                          oneside=False,
                          Middle_Frequency=2400e6
                          )
-You can use the following code to transform the raw frequency signal data into spectromgrams as a png image automatically.
+You can use the following code to transform the raw frequency signal data into spectromgrams as a .png image automatically.
 
     data_path = 'Your datapack path'
     save_path = 'Your save path'
@@ -62,7 +68,16 @@ You can also use the following code to save the spectromgram as a video. video c
                   duration_time=0.1,
                   fps=5,
                   )
+You can also use the following code to transform the rawdata into a spectromgram waterfull video. video can help you to better observe....
 
+    save_path = 'E:/Drone_dataset/RFUAV/darw_test/'
+    waterfull_video(datapack=datapack,
+                  save_path=save_path,
+                  fs=100e6,
+                  stft_point=1024,
+                  duration_time=0.1,
+                  fps=5,
+                  )
 
 ### 2.2 How to estimate the signal to noise ratio
 We provide a SNR estimation method for you to better analysis the binary raw frequency signal data Using the MATLAB toolbox. and we also provide the SNR adjustment method to noisy the raw frequency signal data and adjust it into the different SNR levels.
@@ -70,7 +85,7 @@ We provide a SNR estimation method for you to better analysis the binary raw fre
     print("Hello World")
 
 ### 2.3 How to train and inference the detection
-We provide the training code for the identification tasks based on the PyTorch framework. The currently supported models include ViT[link], ResNet[link], MobileNet[link], EfficientNet[link], and Swin Transformer[link]. You can also customize your own model by using code in utils.model.base.
+We provide the training code for the signal detection and drone identification tasks based on the PyTorch framework. The currently supported models include ViT[link], ResNet[link], MobileNet[link], EfficientNet[link], and Swin Transformer[link]. You can also customize your own model by using code in utils.model.base.
 
 For customized the training, you can create/modified a configration file ended with '.yaml', And specify the configration file path in training code. You can also modify the args in utils.trainer.CustomTrainer() to achieve the desired training.
 
