@@ -10,7 +10,7 @@ class YOLOV5S(nn.Module):
     # YOLOv5 MultiBackend class for python inference on various backends
     def __init__(self,
                  weights='yolov5s.pt',
-                 device=torch.device('cpu'),
+                 device=torch.device('cuda'),
                  dnn=False,
                  data=None,
                  fp16=False,
