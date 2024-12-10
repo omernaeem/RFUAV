@@ -8,7 +8,6 @@ from torchvision import transforms, datasets
 from PIL import Image, ImageDraw, ImageFont
 import time
 from graphic.RawDataProcessor import generate_images
-from io import BytesIO
 import imageio
 import sys
 import cv2
@@ -42,7 +41,8 @@ from logger import colorful_logger
 # Supported image and raw data extensions
 image_ext = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff']
 raw_data_ext = ['.iq', '.dat']
-
+snrs = ['-20dB', '-18dB', '-16dB', '-14dB', '-12dB', '-10dB', '-8dB', '-6dB', '-4dB', '-2dB', '0dB', '2dB', '4dB', '6dB',
+       '8dB', '10dB', '12dB', '14dB', '16dB', '18dB', '20dB']
 
 class Classify_Model(nn.Module):
     """分类阶段的模型切换公共接口
@@ -99,7 +99,7 @@ class Classify_Model(nn.Module):
         - source (str): Path to the source data.
         - save_path (str): Path to save the results.
         """
-
+        torch.no_grad()
         if self.save:
             if not os.path.exists(save_path):
                 os.mkdir(save_path)
@@ -132,7 +132,7 @@ class Classify_Model(nn.Module):
             self.RawdataProcess(source)
 
     def forward(self, img):
-
+        self.model.eval()
         temp = self.model(img)
         probabilities = torch.softmax(temp, dim=1)
         predicted_class_index = torch.argmax(probabilities, dim=1).item()
@@ -285,45 +285,57 @@ class Classify_Model(nn.Module):
         :param data_path:
         :return:
         """
-        self.model.eval()
-        _dataset = datasets.ImageFolder(root=data_path, transform=transforms.Compose([
-            transforms.Resize((self.cfg['image_size'], self.cfg['image_size'])),
-            transforms.ToTensor(),
-        ]))
-        dataset = DataLoader(_dataset, batch_size=self.cfg['batch_size'], shuffle=self.cfg['shuffle'])
-        self.logger.log_with_color("Starting Benchmarking...")
+        save_path = os.path.join(self.save_path, 'benchmark result')
+        if not os.path.exists(save_path):
+            os.mkdir(save_path)
+        drones = os.listdir(data_path)
+        for drone in drones:
 
-        loss = 0.0
-        correct = 0
-        total = 0
-        probabilities = []
-        total_labels = []
-        classes_name = tuple(self.cfg['class_names'].keys())
+            for snr in snrs:
 
-        for images, labels in dataset:
-            images, labels = images.to(self.cfg['device']), labels.to(self.cfg['device'])
-            outputs = self.model(images)
-            for output in outputs:
-                probabilities.append(list(torch.softmax(output, dim=0)))
-            loss += nn.CrossEntropyLoss(outputs, labels).item()
-            _, predicted = outputs.max(1)
-            total += labels.size(0)
-            correct += predicted.eq(labels).sum().item()
-            total_labels.append(labels)
-        _total_labels = torch.concat(total_labels, dim=0)
-        _probabilities = torch.tensor(probabilities)
+                self.model.eval()
+                _dataset = datasets.ImageFolder(root=os.path.join(data_path, drone, snr), transform=transforms.Compose([
+                    transforms.Resize((self.cfg['image_size'], self.cfg['image_size'])),
+                    transforms.ToTensor(),
+                ]))
+                dataset = DataLoader(_dataset, batch_size=self.cfg['batch_size'], shuffle=self.cfg['shuffle'])
+                self.logger.log_with_color("Starting Benchmark...")
 
-        metrics = EVAMetric(preds=_probabilities.to(self.cfg['device']),
-                            labels=_total_labels,
-                            num_classes=self.cfg['num_classes'],
-                            tasks=('f1', 'precision', 'CM'),
-                            topk=(1, 3, 5),
-                            save_path=data_path,
-                            classes_name=classes_name)
+                correct = 0
+                total = 0
+                probabilities = []
+                total_labels = []
+                classes_name = tuple(self.cfg['class_names'].keys())
 
-        metrics['acc'] = 100 * correct / total
-        metrics['total_loss'] = loss / len(dataset)
-        return metrics
+                for images, labels in dataset:
+                    images, labels = images.to(self.cfg['device']), labels.to(self.cfg['device'])
+                    outputs = self.model(images)
+                    for output in outputs:
+                        probabilities.append(list(torch.softmax(output, dim=0)))
+                    _, predicted = outputs.max(1)
+                    total += labels.size(0)
+                    correct += predicted.eq(labels).sum().item()
+                    total_labels.append(labels)
+                _total_labels = torch.concat(total_labels, dim=0)
+                _probabilities = torch.tensor(probabilities)
+
+                metrics = EVAMetric(preds=_probabilities.to(self.cfg['device']),
+                                    labels=_total_labels,
+                                    num_classes=self.cfg['num_classes'],
+                                    tasks=('f1', 'precision', 'CM'),
+                                    topk=(1, 3, 5),
+                                    save_path=save_path,
+                                    classes_name=classes_name)
+                metrics['acc'] = 100 * correct / total
+
+                s = f'{drone}' + ' ' + f'{snr}dB eva result: ' + 'acc: ' + f'{metrics["acc"]}' + 'top-k: ' + (f'{metrics["Top-k"]}'
+                    'mAP: ' + f'{metrics["mAP"]["mAP"]}' + 'f1: ' + f'{metrics["f1"]["macro_f1"]}' + f' {metrics["mAP"]["micro_f1"]}')
+                txt_path = os.path.join(save_path, 'benchmark_result.txt')
+
+                with open(txt_path, 'w') as file:
+                    file.write(s)
+
+                return metrics
 
 
 class Detection_Model:
@@ -368,11 +380,11 @@ class Detection_Model:
         color = Colors()
         detmodel = self.S1model
         stride, names = detmodel.stride, detmodel.names
-
+        torch.no_grad()
         # Run inference
         if isinstance(source, np.ndarray):
-            im0 = source
-            im = letterbox(im0, imgsz, stride=stride, auto=True)[0]  # padded resize
+            detmodel.eval()
+            im = letterbox(source, imgsz, stride=stride, auto=True)[0]  # padded resize
             im = im.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
             im = np.ascontiguousarray(im)  # contiguous
             im = torch.from_numpy(im).to(detmodel.device)
@@ -387,10 +399,10 @@ class Detection_Model:
             pred = non_max_suppression(pred, conf_thres, iou_thres, agnostic=False, max_det=max_det)
             # Process predictions
             for i, det in enumerate(pred):  # per image
-                annotator = Annotator(im0, line_width=line_thickness, example=str(names))
+                annotator = Annotator(source, line_width=line_thickness, example=str(names))
                 if len(det):
                     # Rescale boxes from img_size to im0 size
-                    det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()
+                    det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], source.shape).round()
 
                     # Print results
                     for c in det[:, 5].unique():
@@ -408,6 +420,8 @@ class Detection_Model:
             return im0
 
         else:
+            # Ensure the save directory exists
+            os.makedirs(save_dir, exist_ok=True)
             dataset = LoadImages(source, img_size=imgsz, stride=stride)
             seen, windows, dt = 0, [], (Profile(), Profile(), Profile())
             for path, im, im0s, s in dataset:
@@ -443,7 +457,7 @@ class Detection_Model:
                             c = int(cls)  # integer class
                             label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
 
-                            annotator.box_label(xyxy, label, color=color(c+2, True))
+                            annotator.box_label(xyxy, label, color=color(c + 2, True))
 
                     # Stream results
                     im0 = annotator.result()
@@ -452,9 +466,10 @@ class Detection_Model:
                         return im0
                     else:
                         cv2.imwrite(save_path, im0)
+                        del im0  # Release memory after saving
 
-        # Print results
-        print(f"Results saved to {colorstr('bold', save_dir)}")
+            # Print results
+            print(f"Results saved to {colorstr('bold', save_dir)}")
 
     def faster_rcnn_detect(self,
                            source='../example/source/',
@@ -506,6 +521,40 @@ def get_key_from_value(d, value):
     return None
 
 
+def preprocess_image_yolo(im0, imgsz, stride, detmodel):
+    im = letterbox(im0, imgsz, stride=stride, auto=True)[0]  # padded resize
+    im = im.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
+    im = np.ascontiguousarray(im)  # contiguous
+    im = torch.from_numpy(im).to(detmodel.device)
+    im = im.float()  # uint8 to fp16/32
+    im /= 255  # 0 - 255 to 0.0 - 1.0
+    if len(im.shape) == 3:
+        im = im[None]  # expand for batch dim
+    return im
+
+
+def process_predictions_yolo(det, im, im0, names, line_thickness, hide_labels, hide_conf, color):
+    annotator = Annotator(im0, line_width=line_thickness, example=str(names))
+    if len(det):
+        # Rescale boxes from img_size to im0 size
+        det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()
+
+        # Print results
+        for c in det[:, 5].unique():
+            n = (det[:, 5] == c).sum()  # detections per class
+
+        for *xyxy, conf, cls in reversed(det):
+            c = int(cls)  # integer class
+            label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
+
+            annotator.box_label(xyxy, label, color=color(c + 2, True))
+
+    # Stream results
+    im0 = annotator.result()
+    return im0
+
+
+
 # Usage-----------------------------------------------------------------------------------------------------------------
 def main():
 
@@ -519,10 +568,11 @@ def main():
     """
 
 
-    test = Detection_Model(model_name='yolov5', weight_path='E:/Drone_dataset/RFUAV/RFUAV.pt')
+    test = Detection_Model(model_name='yolov5', weight_path='C:\ML\RFUAV\example\detect\RFUAV_stage1.pt')
     test.yolov5_detect(source='C:/Users/user/Desktop/ceshi/',
-                   save_dir='C:/ML/RFUAV/res/',
-                   )
+                   save_dir='C:/ML/RFUAV/res/',)
+
+
 
 
 if __name__ == '__main__':
