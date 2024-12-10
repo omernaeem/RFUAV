@@ -8,8 +8,9 @@ import imageio
 from PIL import Image
 from typing import Union
 from scipy.fft import fft
-import cv2
 import time
+import pickle
+
 
 class RawDataProcessor:
     """transform raw data into images, video, and save the result locally
@@ -25,6 +26,7 @@ class RawDataProcessor:
                                     sample_rate: Union[int, float] = 100e6,
                                     stft_point: int = 2048,
                                     duration_time: float = 0.1,
+                                    file_type=np.float32
                                     ):
         """transform the raw data into spectromgrams and save the results locally
         :param fig_save_path: the target dir path to save the image result.
@@ -34,7 +36,7 @@ class RawDataProcessor:
         :param duration_time: the duration time of single spectromgram.
         """
         DrawandSave(fig_save_path=fig_save_path, file_path=data_path, fs=sample_rate,
-                    stft_point=stft_point, duration_time=duration_time)
+                    stft_point=stft_point, duration_time=duration_time, file_type=file_type)
 
     def TransRawDataintoVideo(self,
                               save_path: str,
@@ -42,7 +44,8 @@ class RawDataProcessor:
                               sample_rate: Union[int, float] = 100e6,
                               stft_point: int = 2048,
                               duration_time: float = 0.1,
-                              fps: int = 5
+                              fps: int = 5,
+                              file_type=np.float32
                               ):
         """transform the raw data into video and save the result locally
         :param save_path: the target dir path to save the image result.
@@ -53,7 +56,7 @@ class RawDataProcessor:
         :param fps: control the fps of generated video.
         """
         save_as_video(datapack=data_path, save_path=save_path, fs=sample_rate,
-                      stft_point=stft_point, duration_time=duration_time, fps=fps)
+                      stft_point=stft_point, duration_time=duration_time, fps=fps, file_type=file_type)
 
     def ShowSpectrogram(self,
                         data_path: str,
@@ -62,7 +65,8 @@ class RawDataProcessor:
                         stft_point: int = 2048,
                         duration_time: float = 0.1,
                         oneside: bool = False,
-                        Middle_Frequency: float = 2400e6
+                        Middle_Frequency: float = 2400e6,
+                        file_type=np.float32
                         ):
         """tool used to observe the spectrograms from a local datapack
         :param save_path: the target dir path to save the image result.
@@ -76,11 +80,11 @@ class RawDataProcessor:
 
         if oneside:
             show_half_only(datapack=data_path, drone_name=drone_name,
-                           fs=sample_rate, stft_point=stft_point, duration_time=duration_time)
+                           fs=sample_rate, stft_point=stft_point, duration_time=duration_time, file_type=file_type)
 
         else:
             show_spectrum(datapack=data_path, drone_name=drone_name, fs=sample_rate, stft_point=stft_point,
-                           duration_time=duration_time, Middle_Frequency=Middle_Frequency)
+                           duration_time=duration_time, Middle_Frequency=Middle_Frequency, file_type=file_type)
 
 
 def generate_images(datapack: str = None,
@@ -91,6 +95,7 @@ def generate_images(datapack: str = None,
                     duration_time: float = 0.1,
                     ratio: int = 1,  # 控制产生图片时间间隔的倍率，默认为1生成视频的倍率
                     location: str = 'buffer',
+                    file_type=np.float32
                     ):
     """
     Generates images from the given data using Short-Time Fourier Transform (STFT).
@@ -109,7 +114,7 @@ def generate_images(datapack: str = None,
     - list: List of images if `location` is 'buffer'.
     """
     slice_point = int(fs * duration_time)
-    data = np.fromfile(datapack, dtype=np.float32)
+    data = np.fromfile(datapack, dtype=file_type)
     data = data[::2] + data[1::2] * 1j
     if location == 'buffer': images = []
 
@@ -151,7 +156,8 @@ def save_as_video(datapack: str,
                   fs: int = 100e6,
                   stft_point: int = 1024,
                   duration_time: float = 0.1,
-                  fps: int = 5  # 视频帧率
+                  fps: int = 5,  # 视频帧率
+                  file_type=np.float32
                   ):
     """
     Saves the generated images as a video.
@@ -170,7 +176,7 @@ def save_as_video(datapack: str,
     if not os.path.exists(datapack):
         raise ValueError('File not found!')
 
-    images = generate_images(datapack=datapack, fs=fs, stft_point=stft_point, duration_time=duration_time)
+    images = generate_images(datapack=datapack, fs=fs, stft_point=stft_point, duration_time=duration_time, file_type=file_type)
     imageio.mimsave(save_path+'video.mp4', images, fps=fps)
 
 
@@ -180,6 +186,7 @@ def show_spectrum(datapack: str = '',
                   stft_point: int = 2048,
                   duration_time: float = 0.1,
                   Middle_Frequency: float = 2400e6,
+                  file_type=np.float32
                   ):
 
     """
@@ -196,7 +203,7 @@ def show_spectrum(datapack: str = '',
 
     with open(datapack, 'rb') as fp:
         print("reading raw data...")
-        read_data = np.fromfile(fp, dtype=np.float32)
+        read_data = np.fromfile(fp, dtype=file_type)
 
         data = read_data[::2] + read_data[1::2] * 1j
         print('STFT transforming')
@@ -221,6 +228,7 @@ def show_half_only(datapack: str = '',
                    fs: int = 100e6,
                    stft_point: int = 2048,
                    duration_time: float = 0.1,
+                   file_type=np.float32
                    ):
 
     """
@@ -236,7 +244,7 @@ def show_half_only(datapack: str = '',
 
     with open(datapack, 'rb') as fp:
         print("reading raw data...")
-        read_data = np.fromfile(fp, dtype=np.float32)
+        read_data = np.fromfile(fp, dtype=file_type)
         dataI = read_data[::2]
         dataQ = read_data[1::2]
 
@@ -273,6 +281,7 @@ def DrawandSave(
         fs: int = 100e6,
         stft_point: int = 2048,
         duration_time: float = 0.1,
+        file_type=np.float32
 ):
 
     """
@@ -320,6 +329,7 @@ def DrawandSave(
                             duration_time=duration_time,
                             ratio=0,
                             location=fig_save_path,
+                            file_type=file_type
                             )
 
             print(pack + ' Done')
@@ -374,14 +384,31 @@ def STFT(data,
 
 def waterfall_spectrogram(datapack, fft_size, fs, location, time_scale):
     """
-    绘制带颜色的瀑布图，并保存每一帧为图片
-    :param datapack: IQ信号数据 (复数形式)
-    :param fft_size: 每一帧的大小
-    :param fs: 采样频率
-    :param location: 保存图像的目录
+    Generate and save waterfall spectrograms.
+
+    This function reads a data pack, performs Fourier Transform to generate spectrograms,
+    and saves the results as images based on the specified parameters.
+    If location is set to 'buffer', images are saved in memory; otherwise, they are saved to the specified folder.
+
+    Parameters:
+    - datapack: Path to the data pack.
+    - fft_size: Window size for Fast Fourier Transform.
+    - fs: Sampling rate.
+    - location: Image save location, can be 'buffer' (in memory) or a file system path.
+    - time_scale: Time scale to control when to start scrolling the spectrogram.
+
+    Returns:
+    - images: A list of saved images when location is 'buffer'; otherwise, returns None.
     """
+
     data = np.fromfile(datapack, dtype=np.float32)
     data = data[::2] + data[1::2] * 1j
+    pack_gap = 0
+    j = 0
+    gap = 150
+    window = np.hanning(fft_size)
+    spectrogram = []
+    num_frames = len(data) // fft_size
 
     if location == 'buffer':
         images = []
@@ -389,24 +416,10 @@ def waterfall_spectrogram(datapack, fft_size, fs, location, time_scale):
         if not os.path.exists(location):
             os.makedirs(location)
 
-    num_frames = len(data) // fft_size
-    window = np.hanning(fft_size)
-    spectrogram = []
-    start = time.time()
+    for i in range(num_frames):
+        frame_data = data[i * fft_size: (i+1)*fft_size] * window
+        magnitude = np.abs(np.fft.fftshift(fft(frame_data)))
 
-    pack_gap = 0
-    j = 0
-    gap = 150
-    # 遍历每一帧数据
-    for i in range(num_frames-20):
-        # 获取当前帧的IQ数据，应用窗函数
-        start_idx = i * (fft_size)
-        frame_data = data[start_idx:start_idx + fft_size] * window
-
-        # 进行FFT转换到频域
-        spectrum = fft(frame_data)
-        spectrum = np.fft.fftshift(spectrum)  # 将频谱的零频率居中
-        magnitude = np.abs(spectrum)  # 获取频谱的幅度
         if i > time_scale:
             spectrogram = spectrogram[1:]
             spectrogram = np.concatenate((spectrogram, magnitude.reshape(1, fft_size)), axis=0)
@@ -415,9 +428,7 @@ def waterfall_spectrogram(datapack, fft_size, fs, location, time_scale):
             spectrogram.append(magnitude)
 
         pack_gap += 1
-
         if i == time_scale:
-            # 绘制瀑布图
             spectrogram = np.array(spectrogram)
             plt.figure()
             plt.imshow(np.log10(spectrogram.T), aspect='auto', cmap='jet', origin='lower',
@@ -436,21 +447,10 @@ def waterfall_spectrogram(datapack, fft_size, fs, location, time_scale):
                 buffer.seek(0)
                 images.append(BytesIO(buffer.getvalue()))
 
-                # for test
-                """
-                image_bytes = np.asarray(bytearray(buffer.read()), dtype=np.uint8)
-                image = cv2.imdecode(image_bytes, cv2.IMREAD_COLOR)
-                cv2.imshow('Image', image)
-                cv2.waitKey(0)
-                cv2.destroyAllWindows()        
-                """
-
-
             j += 1
             pack_gap = 0
 
         if i > time_scale and pack_gap == gap:
-            # 绘制瀑布图
             plt.figure()
             plt.imshow(np.log10(spectrogram.T), aspect='auto', cmap='jet', origin='lower',
                        extent=[0, num_frames * (fft_size) / fs, -fs / 2, fs / 2])
@@ -458,38 +458,16 @@ def waterfall_spectrogram(datapack, fft_size, fs, location, time_scale):
             plt.subplots_adjust(left=0, right=1, bottom=0, top=1, wspace=None, hspace=None)
 
             if location != 'buffer':
-                # 保存瀑布图
                 plt.savefig(os.path.join(location, str(j) + 'waterfall_spectrogram.jpg'), dpi=300)
                 plt.close()
             else:
-                # buffer = BytesIO()
                 plt.savefig(buffer, format='png', dpi=300)
                 plt.close()
                 buffer.seek(0)
                 images.append(BytesIO(buffer.getvalue()))
-
-                # for test
-                """
-                image_bytes = np.asarray(bytearray(buffer.read()), dtype=np.uint8)
-                image = cv2.imdecode(image_bytes, cv2.IMREAD_COLOR)
-                cv2.imshow('Image', image)
-                cv2.waitKey(0)
-                cv2.destroyAllWindows()        
-                """
-
             j += 1
             pack_gap = 0
 
-    # for test
-    """
-    image_bytes = images[2]
-    image = cv2.imdecode(image_bytes, cv2.IMREAD_COLOR)
-    cv2.imshow('Image', image)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-    """
-
-    print(f"plot spend {start - time.time()}")
     return images
 
 
@@ -505,6 +483,7 @@ def main():
                                      )
     :return:
     """
+
     """
     test.ShowSpectrogram(data_path='E:/Drone_dataset/RFUAV/crop_data/DJFPVCOMBO/DJFPVCOMBO-16db-90db_5760m_100m_10m/DJFPVCOMBO-16db-90db_5760m_100m_10m_0-2s.dat',
                          drone_name='DJ FPV COMBO',
@@ -548,6 +527,7 @@ def main():
                    duration_time=0.1,
                    )
     """
+
 
 if __name__ == '__main__':
     main()

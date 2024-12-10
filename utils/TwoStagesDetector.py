@@ -1,5 +1,8 @@
 import os
 import glob
+import pickle
+
+import torch
 from PIL import Image
 import cv2
 from graphic.RawDataProcessor import waterfall_spectrogram
@@ -7,7 +10,6 @@ from logger import colorful_logger
 import json
 import numpy as np
 import time
-
 from benchmark import Classify_Model, Detection_Model, is_valid_file, raw_data_ext, image_ext
 
 
@@ -69,7 +71,8 @@ class TwoStagesDetector:
 
         if self.S1.S1model:
             if save:
-                res = self.S1.S1model.inference(source=source, save_dir=self.target_dir)
+                with torch.no_grad:
+                    res = self.S1.S1model.inference(source=source, save_dir=self.target_dir)
             else:
                 source.seek(0)
                 temp = np.asarray(bytearray(source.read()), dtype=np.uint8)
@@ -112,33 +115,23 @@ class TwoStagesDetector:
         Parameters:
         - source (str): Path to the raw data.
         """
-        start = time.time()
-        res = []
         test_times = 0
-        #ToDo
         images = waterfall_spectrogram(source, fft_size=256, fs=100e6, location='buffer', time_scale=39062)
         name = os.path.splitext(os.path.basename(source))
-        for image in images:
-            test_times += 1
-            _ = self.ImgProcessor(image, save=False)
-            res.append(_)
+        with torch.no_grad():
+            while images:
+                test_times += 1
+                _ = self.ImgProcessor(images[0], save=False)
 
-        inf_time = time.time() - start
-        print(f"Inference time: {inf_time}")
-        frame = cv2.imread(_[0])
-        height, width, layers = frame.shape
-        video_name = 'output_video.avi'
-
-        fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        video = cv2.VideoWriter(video_name, fourcc, 30, (width, height))
-
-        for image in images:
-            video.write(cv2.imread(os.path.join(self.save_path, image)))
-
-        cv2.destroyAllWindows()
+                if test_times == 1:
+                    height, width, layers = _.shape
+                    video_name = name[0] + 'output_video.avi'
+                    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+                    video = cv2.VideoWriter(video_name, fourcc, 30, (width, height))
+                video.write(_)
+                del images[0]
         video.release()
-        video_time = time.time() - inf_time
-        print(f"Video time: {video_time}")
+        self.logger.log_with_color(f"Finished processing {name[0]}.")
 
     def DroneDetector(self, cfg):
         """第一阶段模型初始化
