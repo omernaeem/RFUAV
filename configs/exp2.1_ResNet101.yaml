@@ -5,7 +5,7 @@ model : resnet101  # 模型种类
 weights: None  # 预训练模型路径
 batch_size: 8
 image_size: 640
-num_classes: 6  # 种类数量
+num_classes: 7  # 种类数量
 class_names: [
         'DJMAVIC3PRO',
         'DJMINI3',
@@ -13,6 +13,7 @@ class_names: [
         'empty',
         'FLYSKY_FS_I6X',
         'Radiolink_AT9S_Pro',
+        'FutabaT14SG',
 ]
 device: 'cuda' # 使用的训练设备
 num_epochs: 150

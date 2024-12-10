@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from scipy.fft import fft
 import cv2
 import re
+import h5py
 
 def plot_waterfall_spectrogram(iq_data, frame_size, fs, output_dir, plot_size):
     """
@@ -113,16 +114,21 @@ def main():
 # 示例调用
 if __name__ == "__main__":
 
-    main()
-    """
+    # main()
     # 模拟IQ数据（假设是1024个点的信号，1个采样周期有2048个数据）
     fs = 100e6  # 采样率1MHz
-    datapack = 'E:/Drone_dataset/RFUAV/exp3/rawdata/FUTABA-T10J_0.3s.iq'
-    save_path = 'E:/Drone_dataset/RFUAV/waterfull_test/'
-
+    datapack = 'E:/Drone_dataset/RFUAV/rawdata/FutabaT14SG/FUtabaT14SG_2440_daifei_80dB(2)_0-2s.iq'
+    save_path = 'E:/Drone_dataset/RFUAV/test/temp/'
     data = np.fromfile(datapack, dtype=np.float32)
+
+    """
+    data = h5py.File(datapack, 'r')
+    data_I = data['RF0_I'][0]
+    data_Q = data['RF0_Q'][0]
+    data = data_I + data_Q * 1j
+    """
+
+
     data = data[::2] + data[1::2] * 1j
 
     plot_waterfall_spectrogram(data, frame_size=256, fs=fs, output_dir=save_path, plot_size=39062)
-    """
-
