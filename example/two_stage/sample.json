@@ -5,7 +5,7 @@
     },
     "classifier": {
         "weight_path": "C:\\ML\\RFUAV\\example\\classify\\ckpt\\stage2.pth",
-        "cfg": "C:\\ML\\RFUAV\\example\\classify\\ResNet101-stage2.yaml"
+        "cfg": "C:\\ML\\RFUAV\\example\\classify\\stage2.yaml"
     },
     "target_dir": "C:\\ML\\RFUAV\\example\\source",
     "save_dir": "C:\\ML\\RFUAV\\res"

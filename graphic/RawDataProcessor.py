@@ -8,8 +8,6 @@ import imageio
 from PIL import Image
 from typing import Union
 from scipy.fft import fft
-import time
-import pickle
 
 
 class RawDataProcessor:
@@ -400,9 +398,11 @@ def waterfall_spectrogram(datapack, fft_size, fs, location, time_scale):
     Returns:
     - images: A list of saved images when location is 'buffer'; otherwise, returns None.
     """
-
-    data = np.fromfile(datapack, dtype=np.float32)
-    data = data[::2] + data[1::2] * 1j
+    if isinstance(datapack, str):
+        data = np.fromfile(datapack, dtype=np.float32)
+        data = data[::2] + data[1::2] * 1j
+    if isinstance(datapack, np.ndarray):
+        data = datapack
     pack_gap = 0
     j = 0
     gap = 150

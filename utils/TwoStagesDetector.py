@@ -1,6 +1,5 @@
 import os
 import glob
-import pickle
 
 import torch
 from PIL import Image
@@ -9,18 +8,19 @@ from graphic.RawDataProcessor import waterfall_spectrogram
 from logger import colorful_logger
 import json
 import numpy as np
-import time
 from benchmark import Classify_Model, Detection_Model, is_valid_file, raw_data_ext, image_ext
 
 
-# 二阶段模型的一个数据流处理类，提供公共接口
 class TwoStagesDetector:
 
     def __init__(self, cfg: str = ''):
-        """解析一个统一cfg的方法，并按照方法选模型
-        1.选设备
-        2.解析cfg，初始化模型
+
+        """A data flow processing class for a two-stage model, providing public interfaces.
+
+        Args:
+            cfg (str): Path to the configuration file.
         """
+
         self.logger = colorful_logger('Inference')
         det, cla, save_path, target_dir = load_model_from_json(cfg)
         self.det = det
@@ -69,6 +69,16 @@ class TwoStagesDetector:
 
     def ImgProcessor(self, source, save=True):
 
+        """Processes an image source using the first and second stage models.
+
+        Args:
+            source: The image source to be processed.
+            save (bool): Whether to save the processed image.
+
+        Returns:
+            Processed image if `save` is False, otherwise None.
+        """
+
         if self.S1.S1model:
             if save:
                 with torch.no_grad:
@@ -109,12 +119,14 @@ class TwoStagesDetector:
                     return res
 
     def RawdataProcess(self, source):
+
         """
         Transforming raw data into a video and performing inference on video.
 
         Parameters:
         - source (str): Path to the raw data.
         """
+
         test_times = 0
         images = waterfall_spectrogram(source, fft_size=256, fs=100e6, location='buffer', time_scale=39062)
         name = os.path.splitext(os.path.basename(source))
@@ -125,47 +137,61 @@ class TwoStagesDetector:
 
                 if test_times == 1:
                     height, width, layers = _.shape
-                    video_name = name[0] + 'output_video.avi'
+                    video_name = name[0] + '_output.avi'
                     fourcc = cv2.VideoWriter_fourcc(*'XVID')
-                    video = cv2.VideoWriter(video_name, fourcc, 30, (width, height))
+                    video = cv2.VideoWriter(os.path.join(self.save_path, video_name), fourcc, 30, (width, height))
                 video.write(_)
                 del images[0]
         video.release()
         self.logger.log_with_color(f"Finished processing {name[0]}.")
 
     def DroneDetector(self, cfg):
-        """第一阶段模型初始化
 
-        :return:
+        """Initializes the first stage model.
+
+        Args:
+            cfg: Configuration for the detector model.
         """
+
         self.S1 = Detection_Model(cfg)
 
-
     def DroneClassifier(self, cfg, weight_path, save=True):
-        """第二阶段模型初始化
 
-        :return:
+        """Initializes the second stage model.
+
+        Args:
+            cfg: Configuration for the classifier model.
+            weight_path: Path to the weights for the classifier model.
+            save (bool): Whether to save the model.
         """
-        self.S2model = Classify_Model(cfg=cfg, weight_path=weight_path)
-        # self.S2model._inference()
 
+        self.S2model = Classify_Model(cfg=cfg, weight_path=weight_path)
 
     @property
     def set_logger(self):
+
         """
         Sets up the logger.
 
         Returns:
         - logger (colorful_logger): Logger instance.
         """
+
         logger = colorful_logger('Inference')
         return logger
 
 
 def load_model_from_json(cfg):
-    """load cfg from .json
-    :return:
+
+    """Loads configuration from a JSON file.
+
+    Args:
+        cfg (str): Path to the configuration file.
+
+    Returns:
+        Tuple containing detector configuration, classifier configuration, save path, and target directory.
     """
+
     with open(cfg, 'r') as f:
         _ = json.load(f)
         return _['detector'] if 'detector' in _ else None, _['classifier'] if 'classifier' in _ else None, _['save_dir'], _['target_dir']
@@ -178,6 +204,21 @@ def put_res_on_img(img,
                    font_scale=1,
                    color=(0, 0, 0),
                    thickness=3):
+
+    """Adds text result on an image.
+
+    Args:
+        img: Image to add text to.
+        text (str): Text to add.
+        probability (float): Probability value to display alongside the text.
+        position (tuple): Position of the text on the image.
+        font_scale (int): Font scale of the text.
+        color (tuple): Color of the text.
+        thickness (int): Thickness of the text.
+
+    Returns:
+        Image with added text.
+    """
 
     # 在图片上添加文字
     cv2.putText(img=img,
