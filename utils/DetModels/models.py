@@ -95,14 +95,3 @@ def attempt_load(weights, device=None, inplace=True, fuse=True):
     model.stride = model[torch.argmax(torch.tensor([m.stride.max() for m in model])).int()].stride  # max stride
     assert all(model[0].nc == m.nc for m in model), f'Models have different class counts: {[m.nc for m in model]}'
     return model
-
-
-class Faster_RCNN(nn.Module):
-    def __init__(self,
-                 weights='faster_rcnn_resnet50_fpn_coco.pth',
-                 device=torch.device('cpu'),
-                 dnn=False,
-                 data=None,
-                 fp16=False,
-                 fuse=True):
-        super().__init__()
