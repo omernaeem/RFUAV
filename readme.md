@@ -6,10 +6,7 @@ We also provide the raw data used to generate the spectrum. it includes 35 of di
 We analyzed property of each drone in the dataset include: Frequency Hopping signal bandwidth (FHSBW), Frequency Hopping Signal Duration time (FHSDT), Video Transmitted Signal Bandwidth (VSBW), Frequency Hopping Signal Duty Cycle (FHSDC), and Frequency Hopping Signal pattern period (FHSPP). And plotted their distribution as shown below. More detailed information is presented in our paper.
   ![pic.2](./abstract/FVFPP.png)
 with the RFUAV you can achieve:
-  <video width="600" controls>
-    <source src="./abstract/output_video.mp4" type="video/mp4">
-    Your browser does not support the video tag.
-  </video>
+  ![detect drone signals and drone identification on the raw IQ data directly](https://github.com/kitoweeknd/RFUAV/blob/dev/abstract/example.gif)
 
 ## 1.Quick start
 <details>
