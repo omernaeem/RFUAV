@@ -1,5 +1,5 @@
-"""
-AutoAnchor utils
+"""AutoAnchor utils
+origin: https://github.com/ultralytics/yolov5/blob/master/utils/autoanchor.py
 """
 import random
 

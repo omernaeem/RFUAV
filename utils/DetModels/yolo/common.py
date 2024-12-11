@@ -411,42 +411,6 @@ class Detections:
         return f'YOLOv5 {self.__class__} instance\n' + self.__str__()
 
 
-class Proto(nn.Module):
-    # YOLOv5 mask Proto module for segmentation models
-    def __init__(self, c1, c_=256, c2=32):  # ch_in, number of protos, number of masks
-        super().__init__()
-        self.cv1 = Conv(c1, c_, k=3)
-        self.upsample = nn.Upsample(scale_factor=2, mode='nearest')
-        self.cv2 = Conv(c_, c_, k=3)
-        self.cv3 = Conv(c_, c2)
-
-    def forward(self, x):
-        return self.cv3(self.cv2(self.upsample(self.cv1(x))))
-
-
-class Classify(nn.Module):
-    # YOLOv5 classification head, i.e. x(b,c1,20,20) to x(b,c2)
-    def __init__(self,
-                 c1,
-                 c2,
-                 k=1,
-                 s=1,
-                 p=None,
-                 g=1,
-                 dropout_p=0.0):  # ch_in, ch_out, kernel, stride, padding, groups, dropout probability
-        super().__init__()
-        c_ = 1280  # efficientnet_b0 size
-        self.conv = Conv(c1, c_, k, s, autopad(k, p), g)
-        self.pool = nn.AdaptiveAvgPool2d(1)  # to x(b,c_,1,1)
-        self.drop = nn.Dropout(p=dropout_p, inplace=True)
-        self.linear = nn.Linear(c_, c2)  # to x(b,c2)
-
-    def forward(self, x):
-        if isinstance(x, list):
-            x = torch.cat(x, 1)
-        return self.linear(self.drop(self.pool(self.conv(x)).flatten(1)))
-
-
 def fuse_conv_and_bn(conv, bn):
     # Fuse Conv2d() and BatchNorm2d() layers https://tehnokv.com/posts/fusing-batchnorm-and-conv/
     fusedconv = nn.Conv2d(conv.in_channels,

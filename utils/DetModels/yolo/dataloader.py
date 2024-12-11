@@ -1,3 +1,7 @@
+"""Dataloader
+origin: https://github.com/ultralytics/yolov5/blob/master/utils/dataloaders.py
+"""
+
 from .torch_utils import torch_distributed_zero_first
 from .general import xywhn2xyxy, xyxy2xywhn, segments2boxes
 

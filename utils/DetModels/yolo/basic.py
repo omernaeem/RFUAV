@@ -1,3 +1,7 @@
+"""Basic Module
+origin: https://github.com/ultralytics/yolov5/blob/master/models/experimental.py
+"""
+
 from torch import nn
 import torch
 from pathlib import Path
@@ -13,12 +17,12 @@ import pkg_resources as pkg
 import platform
 import threading
 import argparse
-import sys
 
 
 IMG_FORMATS = 'bmp', 'dng', 'jpeg', 'jpg', 'mpo', 'png', 'tif', 'tiff', 'webp', 'pfm'  # include image suffixes
 IMAGENET_MEAN = 0.485, 0.456, 0.406  # RGB mean
 IMAGENET_STD = 0.229, 0.224, 0.225  # RGB standard deviation
+
 
 def check_version(current='0.0.0', minimum='0.0.0', name='version ', pinned=False, hard=False, verbose=False):
     # Check version vs. required version
@@ -554,13 +558,6 @@ def threaded(func):
         return thread
 
     return wrapper
-
-
-def denormalize(x, mean=IMAGENET_MEAN, std=IMAGENET_STD):
-    # Denormalize RGB images x per ImageNet stats in BCHW format, i.e. = x * std + mean
-    for i in range(3):
-        x[:, i] = x[:, i] * std[i] + mean[i]
-    return x
 
 
 #ToDo 写一个自动往网上下数据集的

@@ -1,5 +1,5 @@
-"""
-Callback utils
+"""Callback
+origin: https://github.com/ultralytics/yolov5/blob/master/utils/callbacks.py
 """
 import threading
 
