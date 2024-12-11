@@ -4,7 +4,7 @@ from utils.trainer import CustomTrainer
 
 
 def main():
-    model = CustomTrainer(cfg='./configs/exp1.13_swin_v2_s.yaml')
+    model = CustomTrainer(cfg='./configs/exp1.14_swin_v2_b.yaml')
     model.train()
 
     # train a custom signal detect model

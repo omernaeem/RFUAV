@@ -481,7 +481,6 @@ def main():
                                      stft_point=1024,
                                      duration_time=0.1,
                                      )
-    :return:
     """
 
     """
