@@ -554,7 +554,6 @@ def process_predictions_yolo(det, im, im0, names, line_thickness, hide_labels, h
     return im0
 
 
-
 # Usage-----------------------------------------------------------------------------------------------------------------
 def main():
 
@@ -567,12 +566,9 @@ def main():
     # test.benchmark()
     """
 
-
     test = Detection_Model(model_name='yolov5', weight_path='C:\ML\RFUAV\example\detect\RFUAV_stage1.pt')
     test.yolov5_detect(source='C:/Users/user/Desktop/ceshi/',
                    save_dir='C:/ML/RFUAV/res/',)
-
-
 
 
 if __name__ == '__main__':
