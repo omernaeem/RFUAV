@@ -1,11 +1,11 @@
 # The RFUAV DATASET
 ## Abstract
-The official repository of our paper: ”RFUAV: A Benchmark Dataset for Unmanned Aerial Vehicle Detection and Identification“. RFUAV provides a comprehensive benchmark dataset include raw frequency signal data and spectromgrams for drone detection and indentification tasks.  
-The raw data in dataset include 35 of different types of drone under high signal-to-noise ratio (SNR). This dataset is available to all researchers who use RF to analyze drones. You can analyze the data through Deep Learning methods we provided or any traditional signal processing methods like Decode, Demodulation, and FFT. The detailed information of the dataset is shown in the following figure.
+The official repository of our paper: "RFUAV: A Benchmark Dataset for Unmanned Aerial Vehicle Detection and Identification". RFUAV provides a comprehensive benchmark dataset include Radio-Frequency Based (RF-Based) drone detection and identification datasets.  
+We also provide the raw data used to generate the spectrum. it includes 35 of different types of drone under high signal-to-noise ratio (SNR). This dataset is available to all researchers who use RF data to analyze drones. You can analyze the data through Deep Learning methods we provided or any traditional signal processing methods like Decode, Demodulation, and FFT. The detailed information about file size (The total amount of data for each drone), SNR (The highest SNR in each set of data) and Middle frequency (The middle frequency set when collecting each drone) of the dataset is shown in the following figure.
   ![pic.1](./abstract/FSM.png)
 We analyzed property of each drone in the dataset include: Frequency Hopping signal bandwidth (FHSBW), Frequency Hopping Signal Duration time (FHSDT), Video Transmitted Signal Bandwidth (VSBW), Frequency Hopping Signal Duty Cycle (FHSDC), and Frequency Hopping Signal pattern period (FHSPP). And plotted their distribution as shown below. More detailed information is presented in our paper.
-  ![pic.2](./abstract/FVFPP2.png)
-with the dataset you can achieve:
+  ![pic.2](./abstract/FVFPP.png)
+with the RFUAV you can achieve:
   <video width="600" controls>
     <source src="./abstract/output_video.mp4" type="video/mp4">
     Your browser does not support the video tag.
