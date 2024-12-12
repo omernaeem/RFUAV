@@ -189,7 +189,7 @@ The benchmark includes drone images under various SNRs, while the training set o
 
 ## 3.Notice 
 ### 3.1 Raw data parameter description
-
+coming soon
 ### 3.2 Dataset file Structure
 Your dataset file structure should be organized as follows, if you are using the provided dataloader.  
 Dataset  
@@ -204,7 +204,8 @@ Dataset
 &nbsp;&nbsp;&nbsp;└── MINI4  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── imgs  
 ## 4.Dataset download
-
+coming soon
 ## 5.Experiment
-
+coming soon
 ## Citation
+coming soon
