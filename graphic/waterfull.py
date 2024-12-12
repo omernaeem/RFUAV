@@ -128,7 +128,7 @@ def main():
     data = data[::2] + data[1::2] * 1j
 
     """
-    datapack = 'E:/Drone_dataset/RFA/DroneRFa/FutabaT14SG_FLY/high/T10110_S1010.mat'
+    datapack = ''
     data = h5py.File(datapack, 'r')
     data_I = data['RF0_I'][0]
     data_Q = data['RF0_Q'][0]

@@ -49,22 +49,15 @@ for ii = 1:length(files)
     else
         disp("File exist!");
     end
-<<<<<<< Updated upstream
-    % 读取文件,获取大小
-=======
 
->>>>>>> Stashed changes
-    fp = fopen(file_input, 'rb'); 
+    fp = fopen(file_input, 'rb');
     fseek(fp, 0, 1);
     fileSize = ftell(fp);
     fclose(fp);
     readtime = ceil(fileSize/datalength);
-    
-<<<<<<< Updated upstream
-    %% 分次读取文件保存
-=======
+
+
     %% Read and save files in batches
->>>>>>> Stashed changes
     time = 0;
     for i =1:readtime
         tic

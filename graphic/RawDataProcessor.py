@@ -471,12 +471,15 @@ def waterfall_spectrogram(datapack, fft_size, fs, location, time_scale):
     return images
 
 
-# Usage----------------------------------------------------------------------------------------
+# Usage-----------------------------------------------------------------------------------------------------------------
 def main():
+
     """
+    data_path = data_path
+    save_path = save_path
     test = RawDataProcessor()
-    test.TransRawDataintoSpectrogram(fig_save_path='E:/Drone_dataset/RFUAV/augmentation_exp2_allDrone/image/py/Py-jet/',
-                                     data_path='E:/Drone_dataset/RFUAV/test/',
+    test.TransRawDataintoSpectrogram(fig_save_path=save_path,
+                                     data_path=data_path,
                                      sample_rate=100e6,
                                      stft_point=1024,
                                      duration_time=0.1,
@@ -484,7 +487,8 @@ def main():
     """
 
     """
-    test.ShowSpectrogram(data_path='E:/Drone_dataset/RFUAV/crop_data/DJFPVCOMBO/DJFPVCOMBO-16db-90db_5760m_100m_10m/DJFPVCOMBO-16db-90db_5760m_100m_10m_0-2s.dat',
+    data_path = ''
+    test.ShowSpectrogram(data_path=data_path,
                          drone_name='DJ FPV COMBO',
                          sample_rate=100e6,
                          stft_point=2048,
@@ -494,8 +498,10 @@ def main():
     """
 
     """
-    test.TransRawDataintoSpectrogram(fig_save_path='E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/images/Py/',
-                                 data_path='//UGREEN-8880/zstu320_320_公共空间/RFUAV/加噪/',
+    save_path = ''
+    data_path = ''
+    test.TransRawDataintoSpectrogram(fig_save_path=save_path,
+                                 data_path=data_path,
                                  sample_rate=100e6,
                                  stft_point=2048,
                                  duration_time=0.1,
@@ -503,8 +509,8 @@ def main():
     """
 
     """
-    datapack = 'E:/Drone_dataset/RFUAV/crop_data/DJFPVCOMBO/DJFPVCOMBO-16db-90db_5760m_100m_10m/DJFPVCOMBO-16db-90db_5760m_100m_10m_0-2s.dat'
-    save_path = 'E:/Drone_dataset/RFUAV/darw_test/'
+    datapack = ''
+    save_path = ''
     save_as_video(datapack=datapack,
                   save_path=save_path,
                   fs=100e6,

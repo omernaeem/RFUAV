@@ -10,6 +10,7 @@ dataform = 'float32';
 byte_per = 4;                   
 datalength = time_sec*fs*byte_per*2;
 file_in ="";% path
+filepathOut = "";
 
 files_dat = dir(fullfile(file_in, '*.dat'));
 files_iq = dir(fullfile(file_in, '*.iq'));
@@ -26,7 +27,6 @@ for ii = 1:length(files)
             break;
         end
     end
-    filepathOut = "E:\Drone_dataset\RFUAV\augmentation_exp1_MethodSelect\images\Matlab";
     filepathOut_get = filepathOut + '\' + path + '\' + fileName{ii}(1:end-4);
     color = ["parula","hsv","hot","autumn"];
 
