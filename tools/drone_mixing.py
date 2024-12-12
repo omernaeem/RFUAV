@@ -73,9 +73,9 @@ def MergeData(UAV1: str,
 
 # Usage-----------------------------------------------------------------------------------------------------------------
 def main():
-    UAV1 = 'E:/Drone_dataset/RFA/DroneRFa/RadioLinkAT9S_FLY/high/done_jet/T10101_S1000.dat'
-    UAV2 = 'E:/Drone_dataset/RFA/DroneRFa/FutabaT14SG_FLY/high/done_jet/T10110_S1000.dat'
-    targetFolderPath = 'C:/Users/user/Desktop/clip2/'
+    UAV1 = ''
+    UAV2 = ''
+    targetFolderPath = ''
     name = 'test'
 
     duration_time = 0.1
@@ -89,8 +89,7 @@ def main():
         name=name,
         duration_time=duration_time,
         fs=fs,
-        stft_point1=stft_point
-    )
+        stft_point1=stft_point)
 
 
 if __name__ == '__main__':

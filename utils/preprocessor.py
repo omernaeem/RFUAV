@@ -259,12 +259,11 @@ def check_folder(folder_path):
 def main():
 
     """
-    split_images(input_path='E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/3.dataset-origin+20dB_defaultcolor_usingAG/img/',
-             output_path='E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/3.dataset-origin+20dB_defaultcolor_usingAG/dataset/')
+    split_images(input_path='', output_path='')
     """
 
-    data_path = "E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/3.dataset-origin+20dB_defaultcolor_usingAG/dataset_or/"
-    output_path = "E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/3.dataset-origin+20dB_defaultcolor_usingAG/dataset_aug/"
+    data_path = ""
+    output_path = ""
     methods = [A.AdvancedBlur(
                     blur_limit=(7, 13),
                     sigma_x_limit=(7, 13),
@@ -301,6 +300,7 @@ def main():
                )
                ]
     data_augmentation(dataset_path=data_path, output_path=output_path, methods=methods)
+
 
 # test
 if __name__ == '__main__':

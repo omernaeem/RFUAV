@@ -565,8 +565,8 @@ def main():
                    save_path='E:/FowardRes_log/RFUAV/1.code_check/exp1/res')
     # test.benchmark()
     """
-
-    test = Detection_Model(model_name='yolov5', weight_path='C:\ML\RFUAV\example\detect\RFUAV_stage1.pt')
+    weight_path = ''
+    test = Detection_Model(model_name='yolov5', weight_path=weight_path)
     test.yolov5_detect(source='C:/Users/user/Desktop/ceshi/',
                    save_dir='C:/ML/RFUAV/res/',)
 
