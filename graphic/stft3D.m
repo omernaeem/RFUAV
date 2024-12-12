@@ -2,6 +2,7 @@ clc;
 clear;
 close all;
 
+<<<<<<< Updated upstream
 % 参数设置
 fs = 100e6;                   % 采样率
 fc = 2440e6;                  % 中心频率
@@ -20,6 +21,26 @@ outLengthPer = 1+floor((blocksize/2 - fftlength(ii)) / (fftlength(ii)*(1-overlap
 sTotal = zeros(fftlength(ii),times*outLengthPer);                % 用于存储完整 STFT 矩阵
 tTotal = zeros(1,times*outLengthPer);                % 存储全局时间
 % 循环处理每个数据块
+=======
+% args
+fs = 100e6;                   % sample rate
+fc = 2440e6;                  
+fftlength = [2048,1024, 512, 128]; 
+time_sec = 0.5;                   
+dataform = 'float32';           
+byte_per = 4;                   
+datalength = time_sec*fs*byte_per*2;
+file = ""; % path
+
+ii = 2;
+blocksize = 1e6;            
+times = datalength / blocksize; 
+overlap = 0.25;
+outLengthPer = 1+floor((blocksize/2 - fftlength(ii)) / (fftlength(ii)*(1-overlap)));
+sTotal = zeros(fftlength(ii),times*outLengthPer);
+tTotal = zeros(1,times*outLengthPer);
+
+>>>>>>> Stashed changes
 for i = 1:times
     fp = fopen(file, "rb");
     fseek(fp,blocksize*(i-1),-1);
@@ -30,6 +51,7 @@ for i = 1:times
     [s, f, t] = spectrogram(dataIQ,fftlength(ii),fftlength(ii)*overlap,fftlength(ii),fs);
     sTotal = [sTotal, s];
     tTotal = [tTotal, t + (i-1)*blocksize/fs];
+<<<<<<< Updated upstream
     
 % 
 %     surf(tTotal, f, abs(sTotal), 'EdgeColor', 'none'); % 绘制频谱图（幅度）
@@ -60,3 +82,20 @@ title('STFT of IQ Signal');
 % 设置视角
 view(-45, 60);  % 设置3D视角
 colorbar;  % 显示颜色条
+=======
+      
+end
+clear dataIQ;
+
+figure;
+surf(tTotal, f, abs(sTotal), 'EdgeColor', 'none');
+axis xy;
+colormap jet;
+xlabel('Time (s)');
+ylabel('Frequency (Hz)');
+title('STFT of IQ Signal');
+colorbar;
+
+% Setting the Viewing Angle
+view(-45, 60);
+>>>>>>> Stashed changes
