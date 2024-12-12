@@ -15,9 +15,11 @@ class ConfusionMatrix:
     Attributes:
         matrix (np.array): The confusion matrix, with dimensions depending on the task.
         nc (int): The number of classes.
+        pic_name: confusion matrix picture name
     """
 
-    def __init__(self, nc):
+    def __init__(self, nc, pic_name):
+        self.pic_name = pic_name
         self.matrix = np.zeros((nc, nc))
         self.nc = nc
 
@@ -76,12 +78,12 @@ class ConfusionMatrix:
         ax.set_xlabel('GT')
         ax.set_ylabel('Pred')
         ax.set_title(title)
-        plot_fname = Path(save_dir) / f'{title.lower().replace(" ", "_")}.png'
+        plot_fname = Path(save_dir) / f'{self.pic_name}_{title.lower().replace(" ", "_")}.png'
         fig.savefig(plot_fname, dpi=250)
         plt.close(fig)
 
 
-# Usage-------------------------------------------------
+# Usage-----------------------------------------------------------------------------------------------------------------
 def main():
     # probability matrix for each pred image
     pred = torch.tensor([[0, 0.9, 0.8, 0.3, 0.6],
@@ -91,7 +93,7 @@ def main():
                          [0, 0.9, 0.8, 0.7, 0.4]])
     targets = torch.tensor([1, 3, 4, 1, 2])  # labels for each image
 
-    save_dir = 'E:/Drone_dataset/RFUAV/darw_test/'
+    save_dir = ''
 
     test = ConfusionMatrix(nc=5)
     test.process_cls_preds(pred, targets)

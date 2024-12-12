@@ -569,7 +569,7 @@ def yolo_init(known=False):
     parser.add_argument('--cfg', type=str, default=ROOT + '/cfg/yolov5s.yaml',
                         help='models/yolov5n.yaml')
     parser.add_argument('--data', type=str,
-                        default='C:/ML/YOLO/v5/yolov5sr/yolov5-master/dataset/drone_signal_detect_few_shot/data.yaml',
+                        default='',
                         help='dataset.yaml path')
     parser.add_argument('--hyp', type=str, default=ROOT + '/cfg/hyp.scratch-low.yaml',
                         help='hyperparameters path')

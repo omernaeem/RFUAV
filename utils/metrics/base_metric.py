@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 import torch
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 from torch import Tensor
 from utils.logger import colorful_logger
 
@@ -102,7 +102,8 @@ class EVAMetric:
                 num_classes: Optional[int] = None,
                 topk: tuple[int, ...] = None,
                 save_path: Optional[str] = None,
-                classes_name: Optional[tuple[str, ...]] = None,):
+                classes_name: Optional[tuple[str, ...]] = None,
+                pic_name: str = ''):
 
         """
         Custom evaluation metrics for predictions and labels.
@@ -115,6 +116,7 @@ class EVAMetric:
             topk (tuple[int, ...], optional): Top-k values to compute accuracy. Defaults to None.
             save_path (Optional[str], optional): Path to save plots. Defaults to None.
             classes_name (Optional[tuple[str, ...]], optional): Names of the classes. Defaults to None.
+            pic_name str : confusion matrix pic name
 
         Returns:
             dict: Dictionary containing the computed metrics.
@@ -149,7 +151,7 @@ class EVAMetric:
             elif task == 'CM':
                 logger.log_with_color('start plotting the confusion matrix')
                 from .confusionmatrix import ConfusionMatrix
-                cm = ConfusionMatrix(nc=5)
+                cm = ConfusionMatrix(nc=num_classes, pic_name=pic_name)
                 cm.process_cls_preds(preds, labels)
                 for _ in True, False:
                     cm.plot(normalize=_, save_dir=save_path, names=classes_name)
@@ -166,7 +168,7 @@ class EVAMetric:
 def main():
     num_images = 100
     num_classes = 5
-    save_path = 'E:/Drone_dataset/RFUAV/darw_test/'
+    save_path = ''
     classes_name = ('A', 'B', 'C', 'D', 'E')
 
     preds = torch.rand(num_images, num_classes)
