@@ -1,5 +1,7 @@
-# The RFUAV DATASET
+<h1 style="text-align:center;"> The RFUAV DATASET </h1>
+
 ## Abstract
+
 The official repository for our paper, *"RFUAV: A Benchmark Dataset for Unmanned Aerial Vehicle Detection and Identification"*, can be accessed here. RFUAV offers a comprehensive benchmark dataset for Radio-Frequency (RF)-based drone detection and identification.
 
 In addition to the dataset, we provide the raw data used to generate the spectral information, which includes recordings from 35 different types of drones under high signal-to-noise ratio (SNR) conditions. This dataset is available to all researchers working with RF data for drone analysis. Researchers can apply the deep learning methods we have provided, or use traditional signal processing techniques such as decoding, demodulation, and FFT.
@@ -12,9 +14,8 @@ We analyzed the properties of each drone in the dataset, including: Frequency Ho
 
   ![pic.2](./abstract/FVFPP.png)
 
-with the RFUAV you can achieve:
-
-  ![detect drone signals and drone identification on the raw IQ data directly](https://github.com/kitoweeknd/RFUAV/blob/dev/abstract/example.gif)
+With the RFUAV you can achieve drone signal detect and drone identification on the raw IQ data directly like this:
+    <p style="text-align:center;">![detect drone signals and drone identification on the raw IQ data directly](https://github.com/kitoweeknd/RFUAV/blob/dev/abstract/example.gif)</p>
 
 ## 1.Quick start
 <details>
