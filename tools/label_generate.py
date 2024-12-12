@@ -5,7 +5,7 @@ import os
 import random
 
 
-# 模型和標簽的對應表
+# label table
 name_table = {
     'DAUTEL': 0,
     'DEVENTION': 1,
