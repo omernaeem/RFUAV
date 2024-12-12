@@ -12,6 +12,10 @@ colorama >= 0.4.6
 psutil >= 6.1.0
 pyyaml >= 6.0.2
 six >= 1.16.0
+tqdm >= 4.67.1
+thop >= 0.1.1.post2209072238
+
+
 
 torch >= 2.0.1
 torchvision >= 0.15.2

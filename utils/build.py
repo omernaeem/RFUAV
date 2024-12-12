@@ -9,7 +9,11 @@ DefaultConfig = '../configs/config.yaml'
 Model_list = [
     "resnet18", "resnet34", "resnet50", "resnet101", "resnet152",
     "vit_b_16", "vit_b_32", "vit_l_16", "vit_l_32", "vit_h_14",
+<<<<<<< HEAD
     "swin_v2_t", "swin_v2_s", "swin_v2_b", "mobilenet_v3_small"
+=======
+    "swin_v2_t", "swin_v2_s", "swin_v2_b", "mobilenet_v3_small",
+>>>>>>> dev
     "mobilenet_v3_large"]
 
 

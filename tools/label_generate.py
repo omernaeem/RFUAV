@@ -1,5 +1,4 @@
-"""
-批量生成整張時頻圖的標簽和種類
+"""generate the label for yolo
 """
 import shutil
 import os
@@ -76,22 +75,21 @@ def split_pics(source_dir, other_dir, train_dir, valid_dir, ratio):
 
 
 def main():
-    # 分割图片用的路径
-    source_dir = 'E:/Drone_dataset/RFUAV/pics_exp1_alldrones/1.dataset/open/'
+
+    source_dir = ''
     other_dir = []
-    train_dir = 'E:/Drone_dataset/RFUAV/pics_exp1_alldrones/1.dataset/train/images/'
-    valid_dir = 'E:/Drone_dataset/RFUAV/pics_exp1_alldrones/1.dataset/valid/images/'
+    train_dir = ''
+    valid_dir = ''
     print("splitting the TrainSet and ValidSet.")
     # split_pics(source_dir, other_dir, train_dir, valid_dir, 0.2)
     print("Done.")
 
-    # txt生成用的路径
-    pics_valid_path = "E:/Drone_dataset/RFUAV/pics_exp1_alldrones/1.dataset/valid/images/"
-    pics_train_path = "E:/Drone_dataset/RFUAV/pics_exp1_alldrones/1.dataset/train/images/"
-    pics_test_path = "E:/Drone_dataset/RFUAV/pics_exp1_alldrones/1.dataset/test/images/"
-    txt_valid_path = 'E:/Drone_dataset/RFUAV/pics_exp1_alldrones/1.dataset/valid/labels/'
-    txt_train_path = "E:/Drone_dataset/RFUAV/pics_exp1_alldrones/1.dataset/train/labels/"
-    txt_test_path = "E:/Drone_dataset/RFUAV/pics_exp1_alldrones/1.dataset/test/labels/"
+    pics_valid_path = ""
+    pics_train_path = ""
+    pics_test_path = ""
+    txt_valid_path = ''
+    txt_train_path = ""
+    txt_test_path = ""
 
     print('Generating the train labels.')
     generator(pics_train_path,  txt_train_path)

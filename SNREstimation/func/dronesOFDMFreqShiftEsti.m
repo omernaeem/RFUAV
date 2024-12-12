@@ -1,5 +1,5 @@
 function [f1, f2] = dronesOFDMFreqShiftEsti(x, fs, bw, nfft)
-% dronesOFDMbandwidthEsti: 无人机OFDM信号频偏粗检测
+% dronesOFDMbandwidthEsti: Rough frequency deviation detection of drone OFDM signals
 % x:  input signal
 % fs: sample rate
 % bw: bandwitdh 
@@ -8,11 +8,11 @@ function [f1, f2] = dronesOFDMFreqShiftEsti(x, fs, bw, nfft)
 pxx = db(pxx(1:end));
 fvec = fvec(1:end);
 
-pxx = pxx / max(abs(pxx));  % 能量归一化
-pxx = pxx + (-min(pxx));    % 置最小值为0
+pxx = pxx / max(abs(pxx));  % Energy Normalization
+pxx = pxx + (-min(pxx));    
 
 
-bwNfft = round(nfft * (bw / fs) * 0.9); % 信号带宽对应FFT点数
+bwNfft = round(nfft * (bw / fs) * 0.9); % Signal bandwidth corresponds to the number of FFT points
 
 energy = zeros(nfft - bwNfft - 20, 1);
 energy(1) = mean(pxx(1:bwNfft) .^ 2);

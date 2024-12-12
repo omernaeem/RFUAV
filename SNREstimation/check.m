@@ -1,10 +1,10 @@
-% 检测噪声效果
+% Verify noise addition effect
 clc;clear;
-filein = "E:\DataBase\DJFPVCOMBO-22db-90db_5760m_100m_40m\DJFPVCOMBO-22db-90db_5760m_100m_40m_0-2s-noise";
+filein = ""; % path
 files = dir(fullfile(filein,'*.dat'));
-% 按时间排序
-[~, idx] = sort([files.datenum]); % 获取文件的修改时间
-sortedFiles = files(idx); % 按时间排序的文件列表
+
+[~, idx] = sort([files.datenum]); 
+sortedFiles = files(idx); 
 figure
 nfft = 4096;
 for ii = 1:length(files)

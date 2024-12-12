@@ -1,14 +1,13 @@
 # A sample script to test the model.
-from utils.benchmark import Model
+from utils.benchmark import Classify_Model
 
 
 def main():
+    source = ''
 
-    test = Model(cfg='E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/3.dataset-origin+20dB_defaultcolor_usingAG/exp/3.ResNet50//config.yaml',
-                 weight_path='E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/3.dataset-origin+20dB_defaultcolor_usingAG/exp/3.ResNet50/ResNet_epoch_7.pth')
+    test = Classify_Model(cfg='./example/classify/ResNet101-stage2.yaml', weight_path='./example/ckpt/stage2.pth')
+    test.inference(source=source, save_path='./res/')
 
-    test.inference(source='E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/3.dataset-origin+20dB_defaultcolor_usingAG/forTest/input/',
-                   save_path='E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/3.dataset-origin+20dB_defaultcolor_usingAG/forTest/res/')
     # test.benchmark()
 
 

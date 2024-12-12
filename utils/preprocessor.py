@@ -21,6 +21,10 @@ from PIL import Image
 import numpy as np
 import os
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> dev
 def data_augmentation(dataset_path: str = None,
                       output_path: str = None,
                       methods: list[str] = None):
@@ -258,12 +262,20 @@ def check_folder(folder_path):
 def main():
 
     """
+<<<<<<< HEAD
     split_images(input_path='E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/3.dataset-origin+20dB_defaultcolor_usingAG/img/',
              output_path='E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/3.dataset-origin+20dB_defaultcolor_usingAG/dataset/')
     """
 
     data_path = "E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/3.dataset-origin+20dB_defaultcolor_usingAG/dataset_or/"
     output_path = "E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/3.dataset-origin+20dB_defaultcolor_usingAG/dataset_aug/"
+=======
+    split_images(input_path='', output_path='')
+    """
+
+    data_path = ""
+    output_path = ""
+>>>>>>> dev
     methods = [A.AdvancedBlur(
                     blur_limit=(7, 13),
                     sigma_x_limit=(7, 13),
@@ -301,6 +313,10 @@ def main():
                ]
     data_augmentation(dataset_path=data_path, output_path=output_path, methods=methods)
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> dev
 # test
 if __name__ == '__main__':
     main()

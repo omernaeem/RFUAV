@@ -1,0 +1,22 @@
+train: E:\Drone_dataset\RFUAV\exp3\train  # 数据集路径
+val: E:\Drone_dataset\RFUAV\exp3\valid  # 数据集路径
+save_path: E:\Drone_dataset\RFUAV\exp3\res
+model : resnet101  # 模型种类
+weights: None  # 预训练模型路径
+batch_size: 8
+image_size: 640
+num_classes: 7  # 种类数量
+class_names: [
+        'DJMAVIC3PRO',
+        'DJMINI3',
+        'DJMINI4PRO',
+        'empty',
+        'FLYSKY_FS_I6X',
+        'Radiolink_AT9S_Pro',
+        'FutabaT14SG',
+]
+device: 'cuda' # 使用的训练设备
+num_epochs: 150
+shuffle: True
+lr: 0.00001
+optimizer: None

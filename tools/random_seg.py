@@ -1,5 +1,4 @@
-"""
-隨機的按一定比例劃分數據集
+"""random crop the dataset into train set and valid set
 """
 import os
 import random
@@ -44,16 +43,16 @@ def split_images(source_dir, target_dir, other_dir, open_dir, close_dir, ratio, 
 
 
 def main():
-    source_directory = 'E:/Drone_dataset/RFUAV/pics_exp1_alldrones/'
+    source_directory = ''
     target_dir = 'usable'
     other_dir = ['1.dataset']
     ratio = 0.7
-    open_dir = 'E:/Drone_dataset/RFUAV/pics_exp1_alldrones/1.dataset/open/'  # 開集路徑
-    close_dir = 'E:/Drone_dataset/RFUAV/pics_exp1_alldrones/1.dataset/close/'  # 閉集路徑
+    open_dir = ''
+    close_dir = ''
 
     special_dir = ['FLYSKY', 'FRSKY', 'FUTABA',
                    'JR PROPO', 'JUMPER', 'Radiamaster',
-                   'Radiolink', 'SIYI', 'SKYDROID']  # 特殊情況
+                   'Radiolink', 'SIYI', 'SKYDROID']
 
     split_images(source_directory, target_dir, other_dir, open_dir, close_dir, ratio, special_dir)
 

@@ -10,24 +10,44 @@ import time
 from graphic.RawDataProcessor import generate_images
 import imageio
 import sys
+import cv2
+import numpy as np
+try:
+    from DetModels import YOLOV5S
+    from DetModels.yolo.basic import LoadImages, Profile, Path, non_max_suppression, Annotator, scale_boxes, colorstr, \
+        Colors ,letterbox
+
+except ImportError:
+    pass
+
 
 # Current directory and metric directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
 METRIC = os.path.join(current_dir, './metrics')
+
 sys.path.append(METRIC)
 sys.path.append(current_dir)
+sys.path.append('utils/DetModels/yolo')
 
-from .metrics.base_metric import EVAMetric
-from torch.utils.data import DataLoader
+try:
+    from metrics.base_metric import EVAMetric
+    from torch.utils.data import DataLoader
+except ImportError:
+    pass
+
 from logger import colorful_logger
+
 
 # Supported image and raw data extensions
 image_ext = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff']
 raw_data_ext = ['.iq', '.dat']
+snrs = ['-20dB', '-18dB', '-16dB', '-14dB', '-12dB', '-10dB',
+        '-8dB', '-6dB', '-4dB', '-2dB', '0dB', '2dB', '4dB', '6dB',
+       '8dB', '10dB', '12dB', '14dB', '16dB', '18dB', '20dB']
 
-class Model(nn.Module):
+class Classify_Model(nn.Module):
     """
-    Performing inference and benchmarking using a pre-trained model.
+    A class representing a classification model for performing inference and benchmarking using a pre-trained model.
 
     Attributes:
     - logger (colorful_logger): Logger for logging messages with color.
@@ -43,6 +63,15 @@ class Model(nn.Module):
                  weight_path: str = '../default.path',
                  save: bool = True,
                  ):
+
+        """
+        Initializes the Classify_Model.
+
+        Parameters:
+        - cfg (str): Path to configuration dictionary.
+        - weight_path (str): Path to the pre-trained model weights.
+        - save (bool): Flag to indicate whether to save the results.
+        """
 
         super().__init__()
         self.logger = self.set_logger
@@ -80,7 +109,7 @@ class Model(nn.Module):
         - source (str): Path to the source data.
         - save_path (str): Path to save the results.
         """
-
+        torch.no_grad()
         if self.save:
             if not os.path.exists(save_path):
                 os.mkdir(save_path)
@@ -111,6 +140,27 @@ class Model(nn.Module):
         # detect single pack of raw data
         elif is_valid_file(source, raw_data_ext):
             self.RawdataProcess(source)
+
+    def forward(self, img):
+
+        """
+        Forward pass through the model.
+
+        Parameters:
+        - img (torch.Tensor): Input image tensor.
+
+        Returns:
+        - probability (float): Confidence probability of the predicted class.
+        - predicted_class_name (str): Name of the predicted class.
+        """
+
+        self.model.eval()
+        temp = self.model(img)
+        probabilities = torch.softmax(temp, dim=1)
+        predicted_class_index = torch.argmax(probabilities, dim=1).item()
+        predicted_class_name = get_key_from_value(self.cfg['class_names'], predicted_class_index)
+        probability = probabilities[0][predicted_class_index].item() * 100
+        return probability, predicted_class_name
 
     @property
     def load_model(self):
@@ -158,7 +208,7 @@ class Model(nn.Module):
         end_time = time.time()
         self.logger.log_with_color(f"Inference time: {(end_time - start_time) / 100 :.8f} sec")
         self.logger.log_with_color(f"{source} contains Drone: {predicted_class_name}, "
-                                   f"confidence: {probabilities[0][predicted_class_index].item() * 100 :.2f} %,"
+                                   f"confidence1: {probabilities[0][predicted_class_index].item() * 100 :.2f} %,"
                                    f" start saving result")
 
         if self.save:
@@ -251,51 +301,249 @@ class Model(nn.Module):
         return preprocessed_image
 
     def benchmark(self, data_path):
-        """ToDo
-        对benchmark数据进行推理，并计算指标
-        对不同信噪比下的评估集分别进行评估
-        :param data_path:
-        :return:
+
         """
-        self.model.eval()
-        _dataset = datasets.ImageFolder(root=data_path, transform=transforms.Compose([
-            transforms.Resize((self.cfg['image_size'], self.cfg['image_size'])),
-            transforms.ToTensor(),
-        ]))
-        dataset = DataLoader(_dataset, batch_size=self.cfg['batch_size'], shuffle=self.cfg['shuffle'])
-        self.logger.log_with_color("Starting Benchmarking...")
+        Performs benchmarking on the given data and calculates evaluation metrics.
 
-        loss = 0.0
-        correct = 0
-        total = 0
-        probabilities = []
-        total_labels = []
-        classes_name = tuple(self.cfg['class_names'].keys())
+        Parameters:
+        - data_path (str): Path to the benchmark data.
 
-        for images, labels in dataset:
-            images, labels = images.to(self.cfg['device']), labels.to(self.cfg['device'])
-            outputs = self.model(images)
-            for output in outputs:
-                probabilities.append(list(torch.softmax(output, dim=0)))
-            loss += nn.CrossEntropyLoss(outputs, labels).item()
-            _, predicted = outputs.max(1)
-            total += labels.size(0)
-            correct += predicted.eq(labels).sum().item()
-            total_labels.append(labels)
-        _total_labels = torch.concat(total_labels, dim=0)
-        _probabilities = torch.tensor(probabilities)
+        Returns:
+        - metrics (dict): Dictionary containing evaluation metrics.
+        """
 
-        metrics = EVAMetric(preds=_probabilities.to(self.cfg['device']),
-                            labels=_total_labels,
-                            num_classes=self.cfg['num_classes'],
-                            tasks=('f1', 'precision', 'CM'),
-                            topk=(1, 3, 5),
-                            save_path=data_path,
-                            classes_name=classes_name)
+        save_path = os.path.join(self.save_path, 'benchmark result')
+        if not os.path.exists(save_path):
+            os.mkdir(save_path)
+        drones = os.listdir(data_path)
+        with torch.no_grad():
+            for drone in drones:
 
-        metrics['acc'] = 100 * correct / total
-        metrics['total_loss'] = loss / len(dataset)
-        return metrics
+                for snr in snrs:
+
+                    self.model.eval()
+                    _dataset = datasets.ImageFolder(root=os.path.join(data_path, drone, snr), transform=transforms.Compose([
+                        transforms.Resize((self.cfg['image_size'], self.cfg['image_size'])),
+                        transforms.ToTensor(),
+                    ]))
+                    dataset = DataLoader(_dataset, batch_size=self.cfg['batch_size'], shuffle=self.cfg['shuffle'])
+                    self.logger.log_with_color("Starting Benchmark...")
+
+                    correct = 0
+                    total = 0
+                    probabilities = []
+                    total_labels = []
+                    classes_name = tuple(self.cfg['class_names'].keys())
+
+                    for images, labels in dataset:
+                        images, labels = images.to(self.cfg['device']), labels.to(self.cfg['device'])
+                        outputs = self.model(images)
+                        for output in outputs:
+                            probabilities.append(list(torch.softmax(output, dim=0)))
+                        _, predicted = outputs.max(1)
+                        total += labels.size(0)
+                        correct += predicted.eq(labels).sum().item()
+                        total_labels.append(labels)
+                    _total_labels = torch.concat(total_labels, dim=0)
+                    _probabilities = torch.tensor(probabilities)
+
+                    metrics = EVAMetric(preds=_probabilities.to(self.cfg['device']),
+                                        labels=_total_labels,
+                                        num_classes=self.cfg['num_classes'],
+                                        tasks=('f1', 'precision', 'CM'),
+                                        topk=(1, 3, 5),
+                                        save_path=save_path,
+                                        classes_name=classes_name,
+                                        pic_name=f'{drone}_{snr}')
+                    metrics['acc'] = 100 * correct / total
+
+                    s = f'{drone}' + ' ' + f'{snr}dB eva result: ' + 'acc: ' + f'{metrics["acc"]}' + 'top-k: ' + (f'{metrics["Top-k"]}'
+                        'mAP: ' + f'{metrics["mAP"]["mAP"]}' + 'f1: ' + f'{metrics["f1"]["macro_f1"]}' + f' {metrics["mAP"]["micro_f1"]}\n')
+                    txt_path = os.path.join(save_path, 'benchmark_result.txt')
+
+                    with open(txt_path, 'w') as file:
+                        file.write(s)
+
+
+class Detection_Model:
+
+    """
+    A common interface for initializing and running different detection models.
+
+    This class provides methods to initialize and run object detection models such as YOLOv5 and Faster R-CNN.
+    It allows for easy switching between different models by providing a unified interface.
+
+    Attributes:
+    - S1model: The initialized detection model (e.g., YOLOv5S).
+    - model_name: The name of the detection model to be used.
+    - weight_path: The path to the pre-trained model weights.
+
+    Methods:
+    - __init__(self, cfg=None, model_name=None, weight_path=None):
+        Initializes the detection model based on the provided configuration or parameters.
+        If a configuration dictionary `cfg` is provided, it will be used to set the model name and weight path.
+        Otherwise, the `model_name` and `weight_path` parameters can be specified directly.
+
+    - yolov5_detect(self, source='../example/source/', save_dir='../res', imgsz=(640, 640), conf_thres=0.6, iou_thres=0.45, max_det=1000, line_thickness=3, hide_labels=True, hide_conf=False):
+        Runs YOLOv5 object detection on the specified source.
+        - source: Path to the input image or directory containing images.
+        - save_dir: Directory to save the detection results.
+        - imgsz: Image size for inference (height, width).
+        - conf_thres: Confidence threshold for filtering detections.
+        - iou_thres: IoU threshold for non-maximum suppression.
+        - max_det: Maximum number of detections per image.
+        - line_thickness: Thickness of the bounding box lines.
+        - hide_labels: Whether to hide class labels in the output.
+        - hide_conf: Whether to hide confidence scores in the output.
+
+    - faster_rcnn_detect(self, source='../example/source/', save_dir='../res', weight_path='../example/detect/', imgsz=(640, 640), conf_thres=0.25, iou_thres=0.45, max_det=1000, line_thickness=3, hide_labels=False, hide_conf=False):
+        Placeholder method for running Faster R-CNN object detection.
+        This method is currently not implemented and should be replaced with the actual implementation.
+    """
+
+    def __init__(self, cfg=None, model_name=None, weight_path=None):
+        if cfg:
+            model_name = cfg['model_name']
+            weight_path = cfg['weight_path']
+
+            if model_name == 'yolov5':
+                self.S1model = YOLOV5S(weights=weight_path)
+                self.S1model.inference = self.yolov5_detect
+
+            # ToDo
+            elif model_name == 'faster_rcnn':
+                self.S1model = YOLOV5S(weights=weight_path)
+                self.S1model.inference = self.yolov5_detect
+        else:
+            if model_name == 'yolov5':
+                self.S1model = YOLOV5S(weights=weight_path)
+                self.S1model.inference = self.yolov5_detect
+
+            # ToDo
+            elif model_name == 'faster_rcnn':
+                self.S1model = YOLOV5S(weights=weight_path)
+                self.S1model.inference = self.yolov5_detect
+
+    def yolov5_detect(self,
+                      source='../example/source/',
+                      save_dir='../res',
+                      imgsz=(640, 640),
+                      conf_thres=0.6,
+                      iou_thres=0.45,
+                      max_det=1000,
+                      line_thickness=3,
+                      hide_labels=True,
+                      hide_conf=False,
+                      ):
+
+        color = Colors()
+        detmodel = self.S1model
+        stride, names = detmodel.stride, detmodel.names
+        torch.no_grad()
+        # Run inference
+        if isinstance(source, np.ndarray):
+            detmodel.eval()
+            im = letterbox(source, imgsz, stride=stride, auto=True)[0]  # padded resize
+            im = im.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
+            im = np.ascontiguousarray(im)  # contiguous
+            im = torch.from_numpy(im).to(detmodel.device)
+            im = im.float()  # uint8 to fp16/32
+            im /= 255  # 0 - 255 to 0.0 - 1.0
+            if len(im.shape) == 3:
+                im = im[None]  # expand for batch dim
+
+            # Inference
+            pred = detmodel(im)
+            # NMS
+            pred = non_max_suppression(pred, conf_thres, iou_thres, agnostic=False, max_det=max_det)
+            # Process predictions
+            for i, det in enumerate(pred):  # per image
+                annotator = Annotator(source, line_width=line_thickness, example=str(names))
+                if len(det):
+                    # Rescale boxes from img_size to im0 size
+                    det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], source.shape).round()
+
+                    # Print results
+                    for c in det[:, 5].unique():
+                        n = (det[:, 5] == c).sum()  # detections per class
+
+                    for *xyxy, conf, cls in reversed(det):
+                        c = int(cls)  # integer class
+                        label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
+
+                        annotator.box_label(xyxy, label, color=color(c + 2, True))
+
+                # Stream results
+                im0 = annotator.result()
+                # Save results (image with detections)
+            return im0
+
+        else:
+            # Ensure the save directory exists
+            os.makedirs(save_dir, exist_ok=True)
+            dataset = LoadImages(source, img_size=imgsz, stride=stride)
+            seen, windows, dt = 0, [], (Profile(), Profile(), Profile())
+            for path, im, im0s, s in dataset:
+                im = torch.from_numpy(im).to(detmodel.device)
+                im = im.float()  # uint8 to fp16/32
+                im /= 255  # 0 - 255 to 0.0 - 1.0
+                if len(im.shape) == 3:
+                    im = im[None]  # expand for batch dim
+
+                # Inference
+                pred = detmodel(im)
+                # NMS
+                pred = non_max_suppression(pred, conf_thres, iou_thres, agnostic=False, max_det=max_det)
+                # Process predictions
+                for i, det in enumerate(pred):  # per image
+                    seen += 1
+                    p, im0, frame = path, im0s.copy(), getattr(dataset, 'frame', 0)
+
+                    p = Path(p)  # to Path
+                    save_path = str(save_dir + p.name)  # im.jpg
+                    s += '%gx%g ' % im.shape[2:]  # print string
+                    annotator = Annotator(im0, line_width=line_thickness, example=str(names))
+                    if len(det):
+                        # Rescale boxes from img_size to im0 size
+                        det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()
+
+                        # Print results
+                        for c in det[:, 5].unique():
+                            n = (det[:, 5] == c).sum()  # detections per class
+                            s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
+
+                        for *xyxy, conf, cls in reversed(det):
+                            c = int(cls)  # integer class
+                            label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
+
+                            annotator.box_label(xyxy, label, color=color(c + 2, True))
+
+                    # Stream results
+                    im0 = annotator.result()
+                    # Save results (image with detections)
+                    if save_dir == 'buffer':
+                        return im0
+                    else:
+                        cv2.imwrite(save_path, im0)
+                        del im0  # Release memory after saving
+
+            # Print results
+            print(f"Results saved to {colorstr('bold', save_dir)}")
+
+    #ToDo
+    def faster_rcnn_detect(self,
+                           source='../example/source/',
+                           save_dir='../res',
+                           weight_path='../example/detect/',
+                           imgsz=(640, 640),
+                           conf_thres=0.25,
+                           iou_thres=0.45,
+                           max_det=1000,
+                           line_thickness=3,
+                           hide_labels=False,
+                           hide_conf=False,
+    ):
+        pass
 
 
 def is_valid_file(path, total_ext):
@@ -333,14 +581,61 @@ def get_key_from_value(d, value):
     return None
 
 
+def preprocess_image_yolo(im0, imgsz, stride, detmodel):
+    im = letterbox(im0, imgsz, stride=stride, auto=True)[0]  # padded resize
+    im = im.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
+    im = np.ascontiguousarray(im)  # contiguous
+    im = torch.from_numpy(im).to(detmodel.device)
+    im = im.float()  # uint8 to fp16/32
+    im /= 255  # 0 - 255 to 0.0 - 1.0
+    if len(im.shape) == 3:
+        im = im[None]  # expand for batch dim
+    return im
+
+
+def process_predictions_yolo(det, im, im0, names, line_thickness, hide_labels, hide_conf, color):
+    annotator = Annotator(im0, line_width=line_thickness, example=str(names))
+    if len(det):
+        # Rescale boxes from img_size to im0 size
+        det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()
+
+        # Print results
+        for c in det[:, 5].unique():
+            n = (det[:, 5] == c).sum()  # detections per class
+
+        for *xyxy, conf, cls in reversed(det):
+            c = int(cls)  # integer class
+            label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
+
+            annotator.box_label(xyxy, label, color=color(c + 2, True))
+
+    # Stream results
+    im0 = annotator.result()
+    return im0
+
+
 # Usage-----------------------------------------------------------------------------------------------------------------
 def main():
-    test = Model(cfg='E:/Train_log/RFUAV/exp1_test/config.yaml',
-                 weight_path='E:/Train_log/RFUAV/exp1_test/ResNet_epoch_29.pth')
 
-    test.inference(source='E:/FowardRes_log/RFUAV/1.code_check/exp1/source',
-                   save_path='E:/FowardRes_log/RFUAV/1.code_check/exp1/res')
+    """
+    cfg = ''
+    weight_path = ''
+
+    source = ''
+    save_path = ''
+    test = Classify_Model(cfg=cfg, weight_path=weight_path)
+
+    test.inference(source=source, save_path=save_path)
     # test.benchmark()
+    """
+
+    """
+    source = ''
+    weight_path = ''
+    save_dir = ''
+    test = Detection_Model(model_name='yolov5', weight_path=weight_path)
+    test.yolov5_detect(source=source, save_dir=save_dir,)
+    """
 
 
 if __name__ == '__main__':

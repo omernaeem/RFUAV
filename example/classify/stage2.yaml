@@ -1,0 +1,21 @@
+batch_size: 8
+class_names:
+  DJMAVIC3PRO: 0
+  DJMINI3: 1
+  DJMINI4PRO: 2
+  FLYSKY_FS_I6X: 3
+  FutabaT14SG: 4
+  Radiolink_AT9S_Pro: 5
+  empty: 6
+device: cuda
+image_size: 640
+lr: 1.0e-05
+model: resnet101
+num_classes: 7
+num_epochs: 150
+optimizer: None
+save_path: E:\Drone_dataset\RFUAV\exp3\res
+shuffle: true
+train: E:\Drone_dataset\RFUAV\exp3\train
+val: E:\Drone_dataset\RFUAV\exp3\valid
+weights: None

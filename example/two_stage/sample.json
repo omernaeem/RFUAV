@@ -1,0 +1,12 @@
+{
+    "detector": {
+        "model_name": "yolov5",
+        "weight_path": "C:\\ML\\RFUAV\\example\\detect\\RFUAV_stage1.pt"
+    },
+    "classifier": {
+        "weight_path": "C:\\ML\\RFUAV\\example\\classify\\ckpt\\stage2.pth",
+        "cfg": "C:\\ML\\RFUAV\\example\\classify\\stage2.yaml"
+    },
+    "target_dir": "C:\\ML\\RFUAV\\example\\source",
+    "save_dir": "C:\\ML\\RFUAV\\res"
+}
