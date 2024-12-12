@@ -712,7 +712,7 @@ class DetTrainer:
         torch.cuda.empty_cache()
         return results
 
-    #ToDo faster rcnn 的训练
+    #ToDo faster rcnn train
     def faster_rcnn_train(self, save_dir):
         pass
 

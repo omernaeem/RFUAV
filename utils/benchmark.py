@@ -565,10 +565,12 @@ def main():
                    save_path='E:/FowardRes_log/RFUAV/1.code_check/exp1/res')
     # test.benchmark()
     """
+    source = ''
     weight_path = ''
+    save_dir = ''
     test = Detection_Model(model_name='yolov5', weight_path=weight_path)
-    test.yolov5_detect(source='C:/Users/user/Desktop/ceshi/',
-                   save_dir='C:/ML/RFUAV/res/',)
+    test.yolov5_detect(source=source,
+                   save_dir=save_dir,)
 
 
 if __name__ == '__main__':
