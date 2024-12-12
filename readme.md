@@ -3,19 +3,23 @@
 ## Abstract
 
 The official repository for our paper, *"RFUAV: A Benchmark Dataset for Unmanned Aerial Vehicle Detection and Identification"*, can be accessed here. RFUAV offers a comprehensive benchmark dataset for Radio-Frequency (RF)-based drone detection and identification.
+  
+![pic.1](./abstract/profile.png)
 
 In addition to the dataset, we provide the raw data used to generate the spectral information, which includes recordings from 35 different types of drones under high signal-to-noise ratio (SNR) conditions. This dataset is available to all researchers working with RF data for drone analysis. Researchers can apply the deep learning methods we have provided, or use traditional signal processing techniques such as decoding, demodulation, and FFT.
 
 Detailed information about the dataset, including file sizes (total data volume for each drone), SNR (the highest SNR for each dataset), and the middle frequency (the central frequency used during data collection for each drone), is provided in the figure below.
 
-  ![pic.1](./abstract/FSM.png)
+  ![pic.2](./abstract/FSM.png)
 
 We analyzed the properties of each drone in the dataset, including: Frequency Hopping Signal Bandwidth (FHSBW), Frequency Hopping Signal Duration Time (FHSDT), Video Transmitted Signal Bandwidth (VSBW), Frequency Hopping Signal Duty Cycle (FHSDC), and Frequency Hopping Signal Pattern Period (FHSPP). The distributions of these properties are plotted below. More detailed information can be found in our paper.
 
-  ![pic.2](./abstract/FVFPP.png)
+  ![pic.3](./abstract/FVFPP.png)
 
 With the RFUAV you can achieve drone signal detect and drone identification on the raw IQ data directly like this:
-    <p style="text-align:center;">![detect drone signals and drone identification on the raw IQ data directly](https://github.com/kitoweeknd/RFUAV/blob/dev/abstract/example.gif)</p>
+    <div style="text-align:center;">
+        ![detect drone signals and drone identification on the raw IQ data directly](https://github.com/kitoweeknd/RFUAV/blob/dev/abstract/example.gif)
+    </div>
 
 ## 1.Quick start
 <details>
