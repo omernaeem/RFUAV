@@ -5,19 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="eb27f3a5-985a-41f1-abd7-a551fd2e325a" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_Update_at_2024_10_30_18_51__Changes_.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_Update_at_2024_10_30_18_51__Changes_.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_Update_at_2024_11_29_15_20__Changes_.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_Update_at_2024_11_29_15_20__Changes_.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_rebase__Changes_.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_rebase__Changes_.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/rawdata_crop.asv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/rawdata_crop.m" beforeDir="false" afterPath="$PROJECT_DIR$/tools/rawdata_crop.m" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/xml2txt.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/loss.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/model/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/model/base.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/model/model.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/optimizor.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/torch_utils.py" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
