@@ -67,7 +67,7 @@ class ConfusionMatrix:
                        annot=nc < 30,
                        annot_kws={
                            'size': 8},
-                       cmap='magma',
+                       cmap='Reds',
                        fmt='.2f' if normalize else '.0f',
                        square=True,
                        vmin=0.0,
