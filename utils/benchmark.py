@@ -332,7 +332,7 @@ class Classify_Model(nn.Module):
                         transforms.ToTensor(),])
                     )
                     dataset = DataLoader(_dataset, batch_size=self.cfg['batch_size'], shuffle=self.cfg['shuffle'])
-                    self.logger.log_with_color("Starting Benchmark...")
+                    print("Starting Benchmark...")
 
                     correct = 0
                     total = 0
