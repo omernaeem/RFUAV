@@ -47,7 +47,7 @@ With the RFUAV you can achieve drone signal detect and drone identification on t
 ### SDR Playback
 Since our data was directly collected using USRP devices, it is fully compatible with USRP and GNU Radio for signal replay. You can use our raw data to broadcast signals through radio equipment to achieve your desired outcomes. Additionally, we provide the replay results observed during our experiments using an oscilloscope for reference.
     <div style="text-align:center;">
-        ![detect drone signals and drone identification on the raw IQ data directly]()
+        ![SDR playback func](https://github.com/kitoweeknd/RFUAV/blob/dev/abstract/SDR_record.gif)
     </div>
 
 ### 2.1 How to transform the raw frequency signal data into the spectromgram
