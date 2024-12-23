@@ -44,6 +44,12 @@ With the RFUAV you can achieve drone signal detect and drone identification on t
 
 ## 2.Usage
 
+### SDR Playback
+Since our data was directly collected using USRP devices, it is fully compatible with USRP and GNU Radio for signal replay. You can use our raw data to broadcast signals through radio equipment to achieve your desired outcomes. Additionally, we provide the replay results observed during our experiments using an oscilloscope for reference.
+    <div style="text-align:center;">
+        ![detect drone signals and drone identification on the raw IQ data directly]()
+    </div>
+
 ### 2.1 How to transform the raw frequency signal data into the spectromgram
 #### Python Pipeline
 We provide a signal processing pipeline to convert the binary raw frequency signal data into spectrogram format using both MATLAB toolbox and Python.
