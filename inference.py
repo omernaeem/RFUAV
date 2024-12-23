@@ -3,7 +3,7 @@ from utils.benchmark import Classify_Model
 
 
 def main():
-    source = 'E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/bechmark_CM/batch1'
+    source = 'E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/bechmark_CM/batch3'
 
     test = Classify_Model(cfg='E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/3.dataset-origin+20dB_defaultcolor_usingAG/exp/1.ResNet18/config.yaml',
                           weight_path='E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/3.dataset-origin+20dB_defaultcolor_usingAG/exp/1.ResNet18/best_model.pth')

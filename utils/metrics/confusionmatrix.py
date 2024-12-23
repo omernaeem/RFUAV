@@ -58,7 +58,8 @@ class ConfusionMatrix:
         nc, nn = self.nc, len(names)  # number of classes, names
         sn.set(font_scale=1.0 if nc < 50 else 0.8)  # for label size
         labels = (0 < nn < 99) and (nn == nc)  # apply names to ticklabels
-        ticklabels = (list(names)) if labels else 'auto'
+        x_ticklabels = (list(names)) if labels else 'auto'
+        y_ticklabels = x_ticklabels[::-1]
 
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')  # suppress empty matrix RuntimeWarning: All-NaN slice encountered
@@ -71,9 +72,9 @@ class ConfusionMatrix:
                        fmt='.2f' if normalize else '.0f',
                        square=True,
                        vmin=0.0,
-                       xticklabels=ticklabels,
-                       yticklabels=ticklabels,
-                       cbar=False).set_facecolor((1, 1, 1))
+                       xticklabels=x_ticklabels,
+                       yticklabels=y_ticklabels,
+                       cbar=True).set_facecolor((1, 1, 1))
         title = 'Confusion Matrix' + ' Normalized' * normalize
         ax.set_xlabel('GT')
         ax.set_ylabel('Pred')

@@ -319,7 +319,6 @@ class Classify_Model(nn.Module):
             os.mkdir(save_path)
 
         with torch.no_grad():
-
             for snr in snrs:
                 CMS = os.listdir(os.path.join(data_path, snr))
                 for CM in CMS:
@@ -371,6 +370,9 @@ class Classify_Model(nn.Module):
                     colorful_logger(f'cost {(time.time()-stat_time)/60} mins')
                     with open(txt_path, 'a') as file:
                         file.write(s)
+
+                print(f'{CM} Done!')
+            print(f'{snr} Done!')
 
 
 class Detection_Model:
