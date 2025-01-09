@@ -1,57 +1,30 @@
 import os
-
-
-def rename_folders(target_directory, old_name, new_name):
-    """
-    Rename folders in the target directory from old_name to new_name.
-
-    :param target_directory: The directory containing the folders to rename.
-    :param old_name: The current name of the folders to rename.
-    :param new_name: The new name for the folders.
-    """
-    try:
-        # List all items in the target directory
-        for item in os.listdir(target_directory):
-            item_path = os.path.join(target_directory, item)
-            # Check if the item is a directory and its name matches old_name
-            if os.path.isdir(item_path) and item == old_name:
-                new_item_path = os.path.join(target_directory, new_name)
-                # Rename the directory
-                os.rename(item_path, new_item_path)
-                print(f'Renamed: {item_path} to {new_item_path}')
-    except Exception as e:
-        print(f'An error occurred: {e}')
+import shutil
 
 
 def main():
-    # Specify the target directory, old name, and new name
-    data_path = 'E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/bechmark_test/'
+    or_path = 'E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/benchmark_or/'
+    target_path = 'E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/temp/'
+    drone_type = os.listdir(or_path)
+    for drone in drone_type:
+        snr = os.listdir(os.path.join(or_path, drone))
+        for snr_value in snr:
+            data_path = os.path.join(or_path, drone, snr_value, 'hot')
+            stft_ps = os.listdir(data_path)
+            for stft_p in stft_ps:
+                imgs = os.listdir(os.path.join(data_path, stft_p))
+                for img in imgs:
+                    ensure_directory_exists(os.path.join(target_path, snr_value, stft_p, drone))
+                    shutil.copy(os.path.join(data_path, stft_p, img), os.path.join(target_path, snr_value, stft_p, drone))
 
-    snrs = os.listdir(data_path)
 
-    for snr in snrs:
-        CMS = os.listdir(os.path.join(data_path, snr))
-        for CM in CMS:
-            path = os.path.join(data_path, snr, CM)
-            names = os.listdir(path)
-            for name in names:
-                if name == 'DIMINI4PRO-17db-60db_2450m_100m_20-noise':
-                    rename_folders(path, name, 'DJIMINI4PRO')
+def ensure_directory_exists(directory_path):
 
-                if name == 'DJFPVCOMBO-28db-90db_5760m_100m_40-noise':
-                    rename_folders(path, name, 'DJIFPVCOMBO')
-
-                if name == 'DJI AVTA2-SNR2dB-85db_5760m_100m_20m(1-noise':
-                    rename_folders(path, name, 'DJIAVATA2')
-
-                if name == 'DJMAVIC3PRO-16db-90db_5800m_100m_20-noise':
-                    rename_folders(path, name, 'DJIMAVIC3PRO')
-
-                if name == 'DJMINI3--46db-60db_2470m_100m_20-noise':
-                    rename_folders(path, name, 'DJIMINI3')
-
-        print(f'{CM} Done!')
-    print(f'{snr} Done!')
+    if not os.path.exists(directory_path):
+        os.makedirs(directory_path)
+        print(f"目录已创建: {directory_path}")
+    else:
+        print(f"目录已存在: {directory_path}")
 
 
 if __name__ == '__main__':
