@@ -262,8 +262,8 @@ def main():
     split_images(input_path='', output_path='')
     """
 
-    data_path = "E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/5.dataset-20dB_autumn_usingAG/dataset_or/"
-    output_path = "E:/Drone_dataset/RFUAV/augmentation_exp1_MethodSelect/5.dataset-20dB_autumn_usingAG/"
+    data_path = "E:/Drone_dataset/RFUAV/augmentation_exp2_allDrone/dataset/"
+    output_path = "E:/Drone_dataset/RFUAV/augmentation_exp2_allDrone/dataset_aug/"
     methods = [A.AdvancedBlur(
                     blur_limit=(7, 13),
                     sigma_x_limit=(7, 13),

@@ -42,11 +42,11 @@ def split_images(source_dir, target_dir, other_dir, open_dir, close_dir, ratio, 
 
                 for file in train:
                     shutil.copy(os.path.join(source_dir, drone, pack, file), os.path.join(target_dir, 'train', drone))
-                    os.rename(os.path.join(target_dir, 'train', drone, file), os.path.join(target_dir, 'train', drone, drone + str(i)))
+                    os.rename(os.path.join(target_dir, 'train', drone, file), os.path.join(target_dir, 'train', drone, drone + str(i) + '.jpg'))
                     i += 1
                 for file in val:
                     shutil.copy(os.path.join(source_dir, drone, pack, file), os.path.join(target_dir, 'valid', drone))
-                    os.rename(os.path.join(target_dir, 'train', drone, file), os.path.join(target_dir, 'train', drone, drone + str(i)))
+                    os.rename(os.path.join(target_dir, 'valid', drone, file), os.path.join(target_dir, 'valid', drone, drone + str(i) + '.jpg'))
                     i += 1
             print(f'{packs} done')
         print(f'{drone} done')
