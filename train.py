@@ -4,7 +4,7 @@ from utils.trainer import CustomTrainer
 
 
 def main():
-    model = CustomTrainer(cfg='./configs/exp3.1_ResNet18.yaml')
+    model = CustomTrainer(cfg='./configs/exp3.4_ResNet101.yaml')
     model.train()
 
     # save_dir = ''
