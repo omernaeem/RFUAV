@@ -5,12 +5,52 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="eb27f3a5-985a-41f1-abd7-a551fd2e325a" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_Update_at_2024_10_30_18_51__Changes_.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_Update_at_2024_10_30_18_51__Changes_.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_Update_at_2024_11_29_15_20__Changes_.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_Update_at_2024_11_29_15_20__Changes_.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_rebase__Changes_.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_rebase__Changes_.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test.py" beforeDir="false" afterPath="$PROJECT_DIR$/test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/preprocessor.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/preprocessor.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/abstract/profile.png" beforeDir="false" afterPath="$PROJECT_DIR$/abstract/profile.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp0_test.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp0_test.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp1.10_vit_l_16.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp1.10_vit_l_16.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp1.11_vit_l_32.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp1.11_vit_l_32.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp1.12_swin_v2_t.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp1.12_swin_v2_t.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp1.13_swin_v2_s.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp1.13_swin_v2_s.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp1.14_swin_v2_b.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp1.14_swin_v2_b.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp1.1_ResNet18.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp1.1_ResNet18.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp1.2_ResNet34.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp1.2_ResNet34.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp1.3_ResNet50.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp1.3_ResNet50.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp1.4_ResNet101.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp1.4_ResNet101.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp1.5_ResNet152.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp1.5_ResNet152.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp1.6_mobilenet_v3_s.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp1.6_mobilenet_v3_s.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp1.7_mobilenet_v3_l.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp1.7_mobilenet_v3_l.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp1.8_vit_b_16.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp1.8_vit_b_16.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp1.9_vit_b_32.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp1.9_vit_b_32.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp2.10_vit_l_16_autumn.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp2.10_vit_l_16_autumn.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp2.10_vit_l_16_hot.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp2.10_vit_l_16_hot.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp2.10_vit_l_16_hsv.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp2.10_vit_l_16_hsv.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp2.1_ResNet18_hot.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp2.1_ResNet18_hot.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp2.2_ResNet34_hot.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp2.2_ResNet34_hot.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp2.3_ResNet50_hot.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp2.3_ResNet50_hot.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp2.4_ResNet101_hot.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp2.4_ResNet101_hot.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp3.1_ResNet18.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp3.1_ResNet18.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp3.2_ResNet34.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp3.2_ResNet34.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp3.3_ResNet50.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp3.3_ResNet50.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp3.4_ResNet101.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp3.4_ResNet101.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp3.5_ResNet152.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp3.5_ResNet152.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp3.6_mobilenet_v3_s.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp3.6_mobilenet_v3_s.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/exp3.7_mobilenet_v3_l.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/exp3.7_mobilenet_v3_l.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/sample.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/sample.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/graphic/drawOnlyFig.m" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/graphic/mat.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/inference.py" beforeDir="false" afterPath="$PROJECT_DIR$/inference.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/readme.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tools/random_seg.py" beforeDir="false" afterPath="$PROJECT_DIR$/tools/random_seg.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/train.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/DetModels/faster_rcnn/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/DetModels/faster_rcnn (cooming soon)/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/DetModels/faster_rcnn/backbone.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/DetModels/faster_rcnn (cooming soon)/backbone.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/DetModels/faster_rcnn/fpn_neck.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/DetModels/faster_rcnn (cooming soon)/fpn_neck.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/DetModels/faster_rcnn/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/DetModels/faster_rcnn (cooming soon)/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/DetModels/faster_rcnn/roi_head.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/DetModels/faster_rcnn (cooming soon)/roi_head.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/build.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/build.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/logger.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/logger.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/trainer.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/trainer.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -71,7 +111,7 @@
     "Python.yolotest.executor": "Debug",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "git-widget-placeholder": "Merging main",
+    "git-widget-placeholder": "main",
     "ignore.virus.scanning.warn.message": "true",
     "last_opened_file_path": "C:/ML/RFUAV/abstract",
     "node.js.detected.package.eslint": "true",
@@ -91,11 +131,11 @@
       <recent name="C:\ML\RFUAV\example\source" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\ML\RFUAV\abstract" />
       <recent name="C:\ML\RFUAV\example\detect\ckpt" />
       <recent name="C:\ML\RFUAV\example\classify\ckpt" />
       <recent name="C:\ML\RFUAV\example\source" />
       <recent name="C:\ML\RFUAV\res" />
-      <recent name="C:\ML\RFUAV\example" />
     </key>
   </component>
   <component name="RunManager" selected="Python.train">
@@ -288,7 +328,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/utils/trainer.py</url>
-          <line>390</line>
+          <line>377</line>
           <option name="timeStamp" value="170" />
         </line-breakpoint>
       </breakpoints>

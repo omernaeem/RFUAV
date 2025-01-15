@@ -16,8 +16,6 @@ from abc import abstractmethod
 from .metrics.base_metric import EVAMetric
 import sys
 
-<<<<<<< HEAD
-=======
 from tqdm import tqdm
 from pathlib import Path
 from utils.DetModels.yolo import DetectionModel
@@ -40,15 +38,11 @@ import utils.DetModels.yolo.val as validate
 from utils.DetModels.yolo.metrics import fitness
 from utils.DetModels.yolo.callbacks import Callbacks
 
->>>>>>> dev
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 METRIC = os.path.join(current_dir, './metrics')
 sys.path.append(METRIC)
-<<<<<<< HEAD
-=======
 TQDM_BAR_FORMAT = '{l_bar}{bar:10}{r_bar}'
->>>>>>> dev
 
 
 class Basetrainer:
@@ -329,12 +323,6 @@ def model_init_(model_name, num_class, pretrained=True):
     # Mobilenet series model
     elif model_name == "mobilenet_v3_large":
         model = models.mobilenet_v3_large(pretrained=pretrained)
-<<<<<<< HEAD
-        model.classifier = nn.Linear(model.classifier.in_features, num_class)
-    elif model_name == "mobilenet_v3_small":
-        model = models.mobilenet_v3_small(pretrained=pretrained)
-        model.classifier = nn.Linear(model.classifier.in_features, num_class)
-=======
         model.classifier = nn.Sequential(
             nn.Linear(model.classifier[0].in_features, 512),
             nn.ReLU(),
@@ -349,7 +337,6 @@ def model_init_(model_name, num_class, pretrained=True):
             nn.Dropout(0.2),
             nn.Linear(512, num_class)
         )
->>>>>>> dev
 
     else:
         raise ValueError("model not supported")
@@ -442,8 +429,6 @@ class CustomTrainer(Basetrainer):
             self.save_model(metrics, epoch)
 
 
-<<<<<<< HEAD
-=======
 class DetTrainer:
     def __init__(self, model_name):
         if model_name == 'yolo':
@@ -732,7 +717,6 @@ class DetTrainer:
         pass
 
 
->>>>>>> dev
 # for test--------------------------------------------------------------------------------------------------------------
 def show_img_in_dataloader(images):
     """Imshow for Tensor."""

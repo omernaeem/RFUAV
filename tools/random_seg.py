@@ -51,22 +51,18 @@ def split_images(source_dir, target_dir, other_dir, open_dir, close_dir, ratio, 
             print(f'{packs} done')
         print(f'{drone} done')
 
-def check_path(directory_path):
-    """
-    检查文件夹是否存在，如果不存在则创建它。
 
-    :param directory_path: 要检查和创建的文件夹路径
-    """
+def check_path(directory_path):
     if not os.path.exists(directory_path):
         os.makedirs(directory_path)
-        print(f"目录已创建: {directory_path}")
+        print(f"dir created: {directory_path}")
     else:
-        print(f"目录已存在: {directory_path}")
+        print(f"dir exits: {directory_path}")
 
 
 def main():
-    source_directory = 'E:/Drone_dataset/RFUAV/augmentation_exp2_allDrone/or_image/matlab/'
-    target_dir = 'E:/Drone_dataset/RFUAV/augmentation_exp2_allDrone/dataset/'
+    source_directory = 'Your data path'
+    target_dir = 'Your target dir'
     other_dir = []
     ratio = 0.3
     open_dir = ''
