@@ -44,11 +44,19 @@ With the RFUAV you can achieve drone signal detect and drone identification on t
 
 ## 2.Usage
 
+### SDR Playback
+Since our data was directly collected using USRP devices, it is fully compatible with USRP and GNU Radio for signal replay. You can use our raw data to broadcast signals through radio equipment to achieve your desired outcomes. Additionally, we provide the replay results observed during our experiments using an oscilloscope for reference.
+    <div style="text-align:center;">
+        ![SDR playback func](https://github.com/kitoweeknd/RFUAV/blob/dev/abstract/SDR_record.gif)
+    </div>
+
 ### 2.1 How to transform the raw frequency signal data into the spectromgram
 #### Python Pipeline
 We provide a signal processing pipeline to convert the binary raw frequency signal data into spectrogram format using both MATLAB toolbox and Python.
 You can easily use the provided code to visualize the spectrogram of a specific data pack. Note that the argument `'oneside'` controls whether to display the half-plane or full-plane spectrogram.
-
+    
+    from utils.benchmark import RawDataProcessor
+    
     datapack = 'Your datapack path'
     test = RawDataProcessor()
     test.ShowSpectrogram(data_path=datapack,
@@ -60,6 +68,8 @@ You can easily use the provided code to visualize the spectrogram of a specific 
                          Middle_Frequency=2400e6)
 
 You can use the following code to automatically convert the raw frequency signal data into spectrograms and save them as .png images.
+    
+    from utils.benchmark import RawDataProcessor    
 
     data_path = 'Your datapack path'
     save_path = 'Your save path'
@@ -69,7 +79,7 @@ You can use the following code to automatically convert the raw frequency signal
                     stft_point=1024, duration_time=0.1)
 
 You can use the `graphic.RawdataProcessor.save_as_video()` function to save the spectrogram as a video. The video format allows for a better observation of...
-
+    
     data_path = 'Your datapack path'
     save_path = 'Your save path'
     save_as_video(datapack=datapack,
@@ -116,7 +126,9 @@ We provide an `awgn1` function to adjust the noise level of the raw signal data 
 We provide custom training code for drone identification tasks based on the PyTorch framework. Currently supported models include [ViT](https://arxiv.org/abs/2010.11929), [ResNet](https://arxiv.org/abs/1512.03385), [MobileNet](https://arxiv.org/abs/1704.04861), and [Swin Transformer](https://arxiv.org/abs/2103.14030). You can also customize your own model using the code in `utils.model.base`.
 
 To customize the training, you can create or modify a configuration file with the `.yaml` extension and specify its path in the training code. Additionally, you can adjust the arguments in `utils.trainer.CustomTrainer()` to achieve the desired training setup.
-
+        
+        from utils.trainer import CustomTrainer
+        
         CustomTrainer(
             model='resnet50',
             train_data_path='Your train data path',
@@ -132,6 +144,8 @@ To customize the training, you can create or modify a configuration file with th
 
 We provide a pipeline for inference, allowing you to run inference on either spectrogram or binary raw frequency data using the following code. When inferring on binary raw frequency data, the results will automatically be packaged into a video with the identification results displayed on the spectrogram. Note that if you want to infer on a binary raw frequency data pack, you must specify a model weight trained on the spectrogram dataset provided by the Python pipeline.
 
+    from utils.trainer import Classify_Model
+    
     test = Classify_Model(cfg='Your configration file path',
                           weight_path='Your weights path')
 
@@ -140,14 +154,17 @@ We provide a pipeline for inference, allowing you to run inference on either spe
 
 ### 2.4 How to train a custom drone detection model and use it
 
-We provide a custom training method for drone detection tasks. Currently supported models include [YOLOv5](https://github.com/ultralytics/yolov5) and [Faster R-CNN](https://arxiv.org/abs/1506.01497) (coming soon).
+We provide a custom training method for drone detection tasks. Currently supported models include [YOLOv5](https://github.com/ultralytics/yolov5), [Faster R-CNN](https://arxiv.org/abs/1506.01497) (coming soon), and [DETR](https://arxiv.org/abs/2005.12872) (coming soon).
 You can train the YOLOv5 model for drone detection using the following code.
 
     from utils.trainer import DetTrainer
+
     model = DetTrainer(model_name='yolo')
     model.train(save_dir='Your target save path')
 
 We provide an inference pipeline that allows you to run your model on either spectrogram or binary raw frequency data using the following code. When inferring on binary raw frequency data, the results will automatically be packaged into a video with the identification results displayed on the spectrogram. Note that if you want to infer on a binary raw frequency data pack, you must specify a model weight trained on the spectrogram dataset provided by the Python pipeline.
+
+    from utils.trainer import Detection_Model
 
     test = Detection_Model(model_name='yolo', weight_path='Your weights path')
     test.yolov5_detect(source='Your target data path',
@@ -156,6 +173,8 @@ We provide an inference pipeline that allows you to run your model on either spe
 ### 2.6 Classify the drone based on detection result
 
 We provide a simple method to classify drones based on detection results. This involves a two-stage model: the first model detects the drone, and the second model classifies the detected drone signal. You can use the following code to process a raw data pack directly, and the results will be saved as a video.
+    
+    from utils.trainer import TwoStagesDetector
 
     cfg_path = '../example/two_stage/sample.json'
     TwoStagesDetector(cfg=cfg_path)
@@ -167,6 +186,8 @@ Note that you should specify the configuration file in `.json` format. In the co
 Here’s a more polished version of your sentence:
 
 You can evaluate your model on the benchmark using metrics such as mAP, Top-K Accuracy, F1 score, and the Confusion Matrix. The evaluation will be performed separately on the -20dB to 20dB dataset, and the final model performance will be reported across different signal-to-noise ratios.
+    
+    from utils.trainer import Classify_Model
 
     test = Classify_Model(cfg='Your configration file path',
                           weight_path='Your weights path')
@@ -178,6 +199,8 @@ You can evaluate your model on the benchmark using metrics such as mAP, Top-K Ac
 You can directly access our raw data for processing as needed. We provide a MATLAB tool (`tools.rawdata_crop.m`) for segmenting the raw data. You can specify any segment of raw data to be split every 2 seconds. The segmented data packets are smaller and easier to process.
 
 The benchmark includes drone images under various SNRs, while the training set only contains drone image data at its original SNR. Using this training set directly may result in poor model performance on the benchmark. To address this, we provide a data augmentation tool (`utils.preprocessor.data_augmentation`) to enhance the model’s accuracy.
+    
+    from utils.preprocessor import data_augmentation
 
     data_path = "Your dataset path"
     output_path = "Your output path"

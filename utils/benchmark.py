@@ -12,10 +12,12 @@ import imageio
 import sys
 import cv2
 import numpy as np
+from torch.utils.data import DataLoader
+
 try:
     from DetModels import YOLOV5S
     from DetModels.yolo.basic import LoadImages, Profile, Path, non_max_suppression, Annotator, scale_boxes, colorstr, \
-        Colors ,letterbox
+        Colors, letterbox
 
 except ImportError:
     pass
@@ -30,8 +32,7 @@ sys.path.append(current_dir)
 sys.path.append('utils/DetModels/yolo')
 
 try:
-    from metrics.base_metric import EVAMetric
-    from torch.utils.data import DataLoader
+    from .metrics.base_metric import EVAMetric
 except ImportError:
     pass
 
@@ -41,9 +42,6 @@ from logger import colorful_logger
 # Supported image and raw data extensions
 image_ext = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff']
 raw_data_ext = ['.iq', '.dat']
-snrs = ['-20dB', '-18dB', '-16dB', '-14dB', '-12dB', '-10dB',
-        '-8dB', '-6dB', '-4dB', '-2dB', '0dB', '2dB', '4dB', '6dB',
-       '8dB', '10dB', '12dB', '14dB', '16dB', '18dB', '20dB']
 
 class Classify_Model(nn.Module):
     """
@@ -300,7 +298,7 @@ class Classify_Model(nn.Module):
 
         return preprocessed_image
 
-    def benchmark(self, data_path):
+    def benchmark(self, data_path, save_path=None):
 
         """
         Performs benchmarking on the given data and calculates evaluation metrics.
@@ -311,23 +309,29 @@ class Classify_Model(nn.Module):
         Returns:
         - metrics (dict): Dictionary containing evaluation metrics.
         """
+        snrs = os.listdir(data_path)
 
-        save_path = os.path.join(self.save_path, 'benchmark result')
+        if not save_path:
+            save_path = os.path.join(data_path, 'benchmark result')
+            if not os.path.exists(save_path): os.mkdir(save_path)
+
         if not os.path.exists(save_path):
             os.mkdir(save_path)
-        drones = os.listdir(data_path)
+
         with torch.no_grad():
-            for drone in drones:
-
-                for snr in snrs:
-
+            for snr in snrs:
+                CMS = os.listdir(os.path.join(data_path, snr))
+                for CM in CMS:
+                    stat_time = time.time()
                     self.model.eval()
-                    _dataset = datasets.ImageFolder(root=os.path.join(data_path, drone, snr), transform=transforms.Compose([
+                    _dataset = datasets.ImageFolder(
+                        root=os.path.join(data_path, snr, CM),
+                        transform=transforms.Compose([
                         transforms.Resize((self.cfg['image_size'], self.cfg['image_size'])),
-                        transforms.ToTensor(),
-                    ]))
+                        transforms.ToTensor(),])
+                    )
                     dataset = DataLoader(_dataset, batch_size=self.cfg['batch_size'], shuffle=self.cfg['shuffle'])
-                    self.logger.log_with_color("Starting Benchmark...")
+                    print("Starting Benchmark...")
 
                     correct = 0
                     total = 0
@@ -354,15 +358,21 @@ class Classify_Model(nn.Module):
                                         topk=(1, 3, 5),
                                         save_path=save_path,
                                         classes_name=classes_name,
-                                        pic_name=f'{drone}_{snr}')
+                                        pic_name=f'{snr}_{CM}')
                     metrics['acc'] = 100 * correct / total
 
-                    s = f'{drone}' + ' ' + f'{snr}dB eva result: ' + 'acc: ' + f'{metrics["acc"]}' + 'top-k: ' + (f'{metrics["Top-k"]}'
-                        'mAP: ' + f'{metrics["mAP"]["mAP"]}' + 'f1: ' + f'{metrics["f1"]["macro_f1"]}' + f' {metrics["mAP"]["micro_f1"]}\n')
+                    s = (f'{snr} ' + f'CM: {CM} eva result:' + ' acc: ' + f'{metrics["acc"]}' + ' top-1: ' +
+                         f'{metrics["Top-k"]["top1"]}' + ' top-1: ' + f'{metrics["Top-k"]["top1"]}' +
+                         ' top-2 ' + f'{metrics["Top-k"]["top2"]}' + ' top-3 ' + f'{metrics["Top-k"]["top3"]}' +
+                         ' mAP: ' + f'{metrics["mAP"]["mAP"]}' + ' macro_f1: ' + f'{metrics["f1"]["macro_f1"]}' +
+                         ' micro_f1 : ' + f' {metrics["f1"]["micro_f1"]}\n')
                     txt_path = os.path.join(save_path, 'benchmark_result.txt')
-
-                    with open(txt_path, 'w') as file:
+                    colorful_logger(f'cost {(time.time()-stat_time)/60} mins')
+                    with open(txt_path, 'a') as file:
                         file.write(s)
+
+                print(f'{CM} Done!')
+            print(f'{snr} Done!')
 
 
 class Detection_Model:

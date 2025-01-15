@@ -73,13 +73,13 @@ class ConfusionMatrix:
                        annot=nc < 30,
                        annot_kws={
                            'size': 8},
-                       cmap='magma',
+                       cmap='Reds',
                        fmt='.2f' if normalize else '.0f',
                        square=True,
                        vmin=0.0,
                        xticklabels=ticklabels,
                        yticklabels=ticklabels,
-                       cbar=False).set_facecolor((1, 1, 1))
+                       cbar=True).set_facecolor((1, 1, 1))
         title = 'Confusion Matrix' + ' Normalized' * normalize
         ax.set_xlabel('GT')
         ax.set_ylabel('Pred')
