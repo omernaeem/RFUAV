@@ -21,7 +21,7 @@ With the RFUAV you can achieve drone signal detection and drone identification o
         ![detect drone signals and drone identification on the raw IQ data directly](https://github.com/kitoweeknd/RFUAV/blob/dev/abstract/example.gif)
     </div>
 
-## 1. Quick start
+## 1. Quick Start
 <details>
 <summary>Installation</summary>
 
@@ -50,7 +50,7 @@ Since our data was directly collected using USRP devices, it is fully compatible
         ![SDR playback func](https://github.com/kitoweeknd/RFUAV/blob/dev/abstract/SDR_record.gif)
     </div>
 
-### 2.1 How to transform the raw frequency signal data into the spectrogram
+### 2.1 How to Transform the Raw Frequency Signal Data into the Spectrogram
 #### Python Pipeline
 We provide a signal processing pipeline to convert the binary raw frequency signal data into spectrogram format using both MATLAB toolbox and Python.
 You can easily use the provided code to visualize the spectrogram of a specific data pack. Note that the argument `'oneside'` controls whether to display the half-plane or full-plane spectrogram.
@@ -112,7 +112,7 @@ datatype = 'float32';
 check(data_path,nfft ,fs,duration_time,datatype);
 ```
 
-### 2.2 How to estimate the SNR
+### 2.2 How to Estimate the SNR
 
 We provide an SNR estimation method using the MATLAB toolbox to help you better analyze the binary raw frequency signal data. Additionally, we offer an SNR adjustment method to add noise to the raw data and adjust it to different SNR levels.
 
@@ -121,7 +121,7 @@ We provide an SNR estimation method using the MATLAB toolbox to help you better 
 
 We provide an `awgn1` function to adjust the noise level of the raw signal data based on the SNR estimation results mentioned above. The signal-to-noise ratio can be adjusted between -20 dB and 20 dB, with a default step size of 2 dB. You can also define a custom scale if needed.
 
-### 2.3 How to train a custom drone classification model and use it
+### 2.3 How to Train a Custom Drone Classification Model
 
 We provide custom training codes for drone identification tasks based on the PyTorch framework. Currently supported models include [ViT](https://arxiv.org/abs/2010.11929), [ResNet](https://arxiv.org/abs/1512.03385), [MobileNet](https://arxiv.org/abs/1704.04861), and [Swin Transformer](https://arxiv.org/abs/2103.14030). You can also customize your own model using the code in `utils.model.base`.
 
@@ -152,7 +152,7 @@ We provide a pipeline for inference, allowing you to run inference on either spe
     test.inference(source='Your target data path',
                    save_path='Your target save path')
 
-### 2.4 How to train a custom drone detection model and use it
+### 2.4 How to Train a Custom Drone Detection Model
 
 We provide a custom training method for drone detection tasks. Currently supported models include [YOLOv5](https://github.com/ultralytics/yolov5), [Faster R-CNN](https://arxiv.org/abs/1506.01497) (coming soon), and [DETR](https://arxiv.org/abs/2005.12872) (coming soon).
 You can train the YOLOv5 model for drone detection using the following code.
@@ -170,7 +170,7 @@ We provide an inference pipeline that allows you to run your model on either spe
     test.yolov5_detect(source='Your target data path',
                        save_dir='Your target save path')
 
-### 2.6 Classify the drone based on detection result
+### 2.6 Classify the Drone Based on Detection Result
 
 We provide a simple method to classify drones based on detection results. This involves a two-stage model: the first model detects the drone, and the second model classifies the detected drone signal. You can use the following code to process a raw data pack directly, and the results will be saved as a video.
     
@@ -181,7 +181,7 @@ We provide a simple method to classify drones based on detection results. This i
 
 Note that you should specify the configuration file in `.json` format. In the configuration file, you can customize the models used in both the detection and classification stages to achieve better performance.
 
-### 2.6 Evaluate your model on the benchmark
+### 2.6 Evaluate Model on Benchmark
 
 Here’s a more polished version of your sentence:
 
@@ -194,7 +194,7 @@ You can evaluate your model on the benchmark using metrics such as mAP, Top-K Ac
 
     test.benchmark()
 
-### 2.7 Some useful tools to help you process the dataset
+### 2.7 Some Useful Tools to Help You Process the Dataset
 
 You can directly access our raw data for processing as needed. We provide a MATLAB tool (`tools.rawdata_crop.m`) for segmenting the raw data. You can specify any segment of raw data to be split every 2 seconds. The segmented data packets are smaller and easier to process.
 
@@ -211,9 +211,9 @@ The benchmark includes drone images under various SNRs, while the training set o
                       methods=method)
 
 ## 3.Notice 
-### 3.1 Raw data parameter description
+### 3.1 Raw Data Parameter Description
 The dataset public available now is only a subset, which includes 37 drone raw data clips and image data used for our experiment.
-The parameters of the USRP configured during data acquisition for each drone type, are documented in a corresponding (`.xml`) file.
+The parameters of the USRP configured during data acquisition for each drone type are documented in a corresponding (`.xml`) file.
 
 In `.xml` file, `DeviceType` represents the acquisition device type, Drone represents the drone type,
 `SerialNumber` represents the serial number of the drone data pack,
@@ -236,8 +236,8 @@ Dataset
 &nbsp;&nbsp;&nbsp;│ └── imgs  
 &nbsp;&nbsp;&nbsp;└── MINI4  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── imgs  
-## 4.Dataset download
-Dataset now public available on [Kaggle]() and [Hugging Face](https://huggingface.co/datasets/kitofrank/RFUAV)
+## 4.Dataset Download
+Dataset now is publicly available on [Hugging Face](https://huggingface.co/datasets/kitofrank/RFUAV)
 
 ## Citation
 
