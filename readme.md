@@ -12,18 +12,18 @@ Detailed information about the dataset, including file sizes (total data volume 
 
   ![pic.2](./abstract/FSM.png)
 
-We analyzed the properties of each drone in the dataset, including: Frequency Hopping Signal Bandwidth (FHSBW), Frequency Hopping Signal Duration Time (FHSDT), Video Transmitted Signal Bandwidth (VSBW), Frequency Hopping Signal Duty Cycle (FHSDC), and Frequency Hopping Signal Pattern Period (FHSPP). The distributions of these properties are plotted below. More detailed information can be found in our paper.
+We analyzed the properties of each drone in the dataset, including Frequency Hopping Signal Bandwidth (FHSBW), Frequency Hopping Signal Duration Time (FHSDT), Video Transmitted Signal Bandwidth (VSBW), Frequency Hopping Signal Duty Cycle (FHSDC), and Frequency Hopping Signal Pattern Period (FHSPP). The distributions of these properties are plotted below. More detailed information can be found in our paper.
 
   ![pic.3](./abstract/FVFPP.png)
 
-With the RFUAV you can achieve drone signal detect and drone identification on the raw IQ data directly like this:
+With the RFUAV you can achieve drone signal detection and drone identification on the raw IQ data directly like this:
     <div style="text-align:center;">
         ![detect drone signals and drone identification on the raw IQ data directly](https://github.com/kitoweeknd/RFUAV/blob/dev/abstract/example.gif)
     </div>
 
-## 1.Quick start
+## 1. Quick start
 <details>
-<summary>Installtion</summary>
+<summary>Installation</summary>
 
     pip install -r requirements.txt
 
@@ -50,7 +50,7 @@ Since our data was directly collected using USRP devices, it is fully compatible
         ![SDR playback func](https://github.com/kitoweeknd/RFUAV/blob/dev/abstract/SDR_record.gif)
     </div>
 
-### 2.1 How to transform the raw frequency signal data into the spectromgram
+### 2.1 How to transform the raw frequency signal data into the spectrogram
 #### Python Pipeline
 We provide a signal processing pipeline to convert the binary raw frequency signal data into spectrogram format using both MATLAB toolbox and Python.
 You can easily use the provided code to visualize the spectrogram of a specific data pack. Note that the argument `'oneside'` controls whether to display the half-plane or full-plane spectrogram.
@@ -102,7 +102,7 @@ You can use the `graphic.RawdataProcessor.waterfall_spectrogram()` function to c
 
 #### Matlab Pipeline
 
-You can simply use the `check.m` program to check the spectromgram of a specialized data pack. 
+You can simply use the `check.m` program to check the spectrogram of a specialized data pack. 
 ```MATLAB
 data_path = 'Your datapack path';
 nfft = 512;
@@ -123,7 +123,7 @@ We provide an `awgn1` function to adjust the noise level of the raw signal data 
 
 ### 2.3 How to train a custom drone classification model and use it
 
-We provide custom training code for drone identification tasks based on the PyTorch framework. Currently supported models include [ViT](https://arxiv.org/abs/2010.11929), [ResNet](https://arxiv.org/abs/1512.03385), [MobileNet](https://arxiv.org/abs/1704.04861), and [Swin Transformer](https://arxiv.org/abs/2103.14030). You can also customize your own model using the code in `utils.model.base`.
+We provide custom training codes for drone identification tasks based on the PyTorch framework. Currently supported models include [ViT](https://arxiv.org/abs/2010.11929), [ResNet](https://arxiv.org/abs/1512.03385), [MobileNet](https://arxiv.org/abs/1704.04861), and [Swin Transformer](https://arxiv.org/abs/2103.14030). You can also customize your own model using the code in `utils.model.base`.
 
 To customize the training, you can create or modify a configuration file with the `.yaml` extension and specify its path in the training code. Additionally, you can adjust the arguments in `utils.trainer.CustomTrainer()` to achieve the desired training setup.
         
@@ -146,7 +146,7 @@ We provide a pipeline for inference, allowing you to run inference on either spe
 
     from utils.trainer import Classify_Model
     
-    test = Classify_Model(cfg='Your configration file path',
+    test = Classify_Model(cfg='Your configuration file path',
                           weight_path='Your weights path')
 
     test.inference(source='Your target data path',
@@ -189,12 +189,12 @@ You can evaluate your model on the benchmark using metrics such as mAP, Top-K Ac
     
     from utils.trainer import Classify_Model
 
-    test = Classify_Model(cfg='Your configration file path',
+    test = Classify_Model(cfg='Your configuration file path',
                           weight_path='Your weights path')
 
     test.benchmark()
 
-### 2.7 Some useful tools to help you to process the dataset
+### 2.7 Some useful tools to help you process the dataset
 
 You can directly access our raw data for processing as needed. We provide a MATLAB tool (`tools.rawdata_crop.m`) for segmenting the raw data. You can specify any segment of raw data to be split every 2 seconds. The segmented data packets are smaller and easier to process.
 
@@ -212,7 +212,7 @@ The benchmark includes drone images under various SNRs, while the training set o
 
 ## 3.Notice 
 ### 3.1 Raw data parameter description
-The dataset public available now is only a subset, which includes 37 drone raw data clip and image data used for our experiment.
+The dataset public available now is only a subset, which includes 37 drone raw data clips and image data used for our experiment.
 The parameters of the USRP configured during data acquisition for each drone type, are documented in a corresponding (`.xml`) file.
 
 In `.xml` file, `DeviceType` represents the acquisition device type, Drone represents the drone type,
@@ -223,8 +223,8 @@ In `.xml` file, `DeviceType` represents the acquisition device type, Drone repre
 `SampleRate` represents the sampling rate of the drone data pack,
 `IFBandwidth` represents the bandwidth of the drone data pack,
 `ScaleFactor` represents the hardware power amplification scale used when collecting signals, in dB. 
-### 3.2 Dataset file Structure
-Your dataset file structure should be organized as follows, if you are using the provided dataloader.  
+### 3.2 Dataset File Structure
+Your dataset file structure should be organized as follows if you are using the provided dataloader.  
 Dataset  
 ├── train  
 │ ├── AVATA  
