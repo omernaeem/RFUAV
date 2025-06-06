@@ -237,9 +237,11 @@ Dataset
 &nbsp;&nbsp;&nbsp;└── MINI4  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── imgs  
 ## 4.Dataset Download
-Dataset contains raw frequency data and classification dataset now is publicly available on [Hugging Face](https://huggingface.co/datasets/kitofrank/RFUAV).
 
-If you are looking for the detection dataset, here’s a [subset](https://app.roboflow.com/rui-shi/drone-signal-detect-few-shot/models) I created—you can use it as a reference.
+
+The raw data, spectrograms, and model weights used in this study are now publicly available on [Hugging Face](https://huggingface.co/datasets/kitofrank/RFUAV).
+For those interested in the detection dataset, a curated [subset](https://app.roboflow.com/rui-shi/drone-signal-detect-few-shot/models) is also provided on Roboflow, which can serve as a useful reference.
+
 
 ## Citation
 
