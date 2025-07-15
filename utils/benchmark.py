@@ -156,7 +156,7 @@ class Classify_Model(nn.Module):
         temp = self.model(img)
         probabilities = torch.softmax(temp, dim=1)
         predicted_class_index = torch.argmax(probabilities, dim=1).item()
-        predicted_class_name = get_key_from_value(self.cfg['class_names'], predicted_class_index)
+        predicted_class_name = self.cfg['class_names'][predicted_class_index]
         probability = probabilities[0][predicted_class_index].item() * 100
         return probability, predicted_class_name
 
@@ -224,6 +224,7 @@ class Classify_Model(nn.Module):
         - source (str): Path to the raw data.
         """
         res = []
+        #images = generate_images(source, location='stft/')
         images = generate_images(source)
         name = os.path.splitext(os.path.basename(source))
 
@@ -233,7 +234,7 @@ class Classify_Model(nn.Module):
             probabilities = torch.softmax(temp, dim=1)
 
             predicted_class_index = torch.argmax(probabilities, dim=1).item()
-            predicted_class_name = get_key_from_value(self.cfg['class_names'], predicted_class_index)
+            predicted_class_name = self.cfg['class_names'][predicted_class_index]
 
             _ = self.add_result(res=predicted_class_name,
                                 probability=probabilities[0][predicted_class_index].item() * 100,
@@ -266,11 +267,18 @@ class Classify_Model(nn.Module):
         Returns:
         - image (PIL.Image): Image with added result.
         """
-        draw = ImageDraw.Draw(image)
+
+        #if image is a file path open it
+        if isinstance(image, str):
+            image_ = Image.open(image).convert('RGB')
+        else:
+            image_ = image
+
+        draw = ImageDraw.Draw(image_)
         font = ImageFont.truetype(font, font_size)
         draw.text(position, res + f" {probability:.2f}%", fill=text_color, font=font)
 
-        return image
+        return image_
 
     @property
     def set_logger(self):
@@ -290,7 +298,15 @@ class Classify_Model(nn.Module):
             transforms.ToTensor(),
         ])
 
-        image = Image.open(img).convert('RGB')
+        if isinstance(img, str):
+            image = Image.open(img).convert('RGB')
+        else:
+            # If img is already an image object, convert it to RGB
+            if isinstance(img, Image.Image):
+                image = img.convert('RGB')
+            else:
+                raise ValueError("Input must be a file path or a PIL Image object.")
+            
         preprocessed_image = transform(image)
 
         preprocessed_image = preprocessed_image.to(self.device)
