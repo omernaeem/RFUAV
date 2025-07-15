@@ -114,10 +114,17 @@ def generate_images(datapack: str = None,
     slice_point = int(fs * duration_time)
     data = np.fromfile(datapack, dtype=file_type)
     data = data[::2] + data[1::2] * 1j
-    if location == 'buffer': images = []
+    if location == 'buffer': 
+        images = []
+    else:
+        # if datapack is like /home/omer/drone/RFUAV/data/raw/DJI MINI3/VTSBW=10/pack2_0-1s.iq
+        # then pack will be pack2_0-1s and file will be DJI MINI3/VTSBW=10
+        pack = os.path.splitext(os.path.basename(datapack))[0]
+        file = os.path.dirname(datapack).split('/')[-2] + '/' + os.path.dirname(datapack).split('/')[-1]
+        files = []
 
     i = 0
-    while (i + 1) * slice_point <= len(data):
+    while (i + 1) * slice_point <= len(data)/5:
 
         f, t, Zxx = STFT(data[int(i * slice_point): int((i + 1) * slice_point)],
                          stft_point=stft_point, fs=fs, duration_time=duration_time, onside=False)
@@ -140,13 +147,20 @@ def generate_images(datapack: str = None,
             images.append(Image.open(buffer))
 
         else:
-            plt.savefig(location + (file + '/' if file else '') + (pack + '/' if pack else '') + file + ' (' + str(i) + ').jpg', dpi=300)
+            save_dir = os.path.join(location, file if file else '', pack if pack else '')
+            os.makedirs(save_dir, exist_ok=True)
+            save_path = os.path.join(save_dir, f"{i}.jpg")
+            plt.savefig(save_path, dpi=300)
             plt.close()
+            files.append(save_path)
 
         i += 2 ** (-ratio)
 
     if location == 'buffer':
         return images
+    else:
+        print(f"Generated {len(files)} images in {location} for file {datapack}.")
+        return files
 
 
 def save_as_video(datapack: str,
