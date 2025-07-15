@@ -201,7 +201,7 @@ class Classify_Model(nn.Module):
         probabilities = torch.softmax(temp, dim=1)
 
         predicted_class_index = torch.argmax(probabilities, dim=1).item()
-        predicted_class_name = get_key_from_value(self.cfg['class_names'], predicted_class_index)
+        predicted_class_name = self.cfg['class_names'][predicted_class_index]
 
         end_time = time.time()
         self.logger.log_with_color(f"Inference time: {(end_time - start_time) / 100 :.8f} sec")
@@ -340,8 +340,8 @@ class Classify_Model(nn.Module):
         if not os.path.exists(save_path):
             os.mkdir(save_path)
         #根据得到映射关系写下面的，我得到的是★ 最佳映射 pred → gt: {0: 2, 1: 1, 2: 3, 3: 4, 4: 0}
-        #MAP_P2G=torch.tensor([2,1,3,4,0],device=self.cfg['device'])
-        #INV_MAP=torch.argsort(MAP_P2G)
+        MAP_P2G=torch.tensor([2,1,3,4,0],device=self.cfg['device'])
+        INV_MAP=torch.argsort(MAP_P2G)
         with torch.no_grad():
             for snr in snrs:
                 CMS = os.listdir(os.path.join(data_path, snr))
@@ -361,13 +361,13 @@ class Classify_Model(nn.Module):
                     total = 0
                     probabilities = []
                     total_labels = []
-                    classes_name = tuple(self.cfg['class_names'].keys())
+                    classes_name = self.cfg['class_names']
                     cm_raw = np.zeros((5, 5), dtype=int)
                     for images, labels in dataset:
                         images, labels = images.to(self.cfg['device']), labels.to(self.cfg['device'])
                         outputs = self.model(images)
-                        #outputs=outputs[:,INV_MAP]
-                        #probs =torch.softmax(outputs,dim=1)
+                        outputs=outputs[:,INV_MAP]
+                        probs =torch.softmax(outputs,dim=1)
                         for output in outputs:
                             probabilities.append(list(torch.softmax(output, dim=0)))
                         _, predicted = outputs.max(1)
@@ -400,8 +400,8 @@ class Classify_Model(nn.Module):
                     with open(txt_path, 'a') as file:
                         file.write(s)
 
-                print(f'{CM} Done!')
-            print(f'{snr} Done!')
+                    print(f'{CM} Done!')
+                print(f'{snr} Done!')
         row_ind, col_ind = linear_sum_assignment(-cm_raw)   # 取负→最大化对角线
         mapping_pred2gt = {int(r): int(c) for r, c in zip(row_ind, col_ind)}
         print("\n★ 最佳映射 pred → gt:", mapping_pred2gt)
