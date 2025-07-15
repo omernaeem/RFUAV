@@ -1,17 +1,17 @@
-train:
-val:
-save_path:
+train: data/train/
+val: data/valid/
+save_path: results/
 model : resnet101
 weights: None
 batch_size: 8
 image_size: 640
 num_classes: 5
 class_names: [
-        'DJIAVATA2',
-        'DJIFPVCOMBO',
         'DJIMAVIC3PRO',
+        'DJIFPVCOMBO',
         'DJIMINI3',
         'DJIMINI4PRO',
+        'DJIAVATA2'
 ]
 device: 'cuda'
 num_epochs: 150
