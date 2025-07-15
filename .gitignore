@@ -1,4 +1,6 @@
 .idea/
 .vscode/
 .gitignore
-.data/
+data/
+stft/
+__pycache__/
