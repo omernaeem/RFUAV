@@ -124,13 +124,15 @@ def generate_images(datapack: str = None,
         files = []
 
     i = 0
-    while (i + 1) * slice_point <= len(data)/5:
+    while (i + 1) * slice_point <= len(data):
 
         f, t, Zxx = STFT(data[int(i * slice_point): int((i + 1) * slice_point)],
                          stft_point=stft_point, fs=fs, duration_time=duration_time, onside=False)
         f = np.fft.fftshift(f)
         Zxx = np.fft.fftshift(Zxx, axes=0)
-        aug = 10 * np.log10(np.abs(Zxx))
+        # Convert to dB scale
+        # Adding a small constant to avoid log(0)
+        aug = 10 * np.log10(np.abs(Zxx) + 1e-12)
         extent = [t.min(), t.max(), f.min(), f.max()]
 
         plt.figure()
