@@ -224,9 +224,9 @@ class Classify_Model(nn.Module):
         - source (str): Path to the raw data.
         """
         res = []
-        #images = generate_images(source, location='stft/')
-        images = generate_images(source)
-        name = os.path.splitext(os.path.basename(source))
+        images = generate_images(source, location='stft/')
+        #images = generate_images(source)
+        name = os.path.splitext(os.path.basename(source))[0]
 
         for image in images:
             temp = self.model(self.preprocess(image))
@@ -275,7 +275,13 @@ class Classify_Model(nn.Module):
             image_ = image
 
         draw = ImageDraw.Draw(image_)
-        font = ImageFont.truetype(font, font_size)
+
+
+        try:
+            font = ImageFont.truetype(font, font_size)
+        except OSError:
+            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", font_size)
+
         draw.text(position, res + f" {probability:.2f}%", fill=text_color, font=font)
 
         return image_
