@@ -25,6 +25,8 @@ With the RFUAV you can achieve drone signal detection and drone identification o
 <details>
 <summary>Installation</summary>
 
+    conda create -n rfuav python=3.11
+    conda activate rfuav
     pip install -r requirements.txt
 
 </details>
