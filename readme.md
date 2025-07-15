@@ -1,4 +1,8 @@
-<h1 style="text-align:center;"> The RFUAV DATASET </h1>
+<h1 style="text-align:center;"> RFUAV </h1>
+
+## This Fork vs Original
+
+This fork fixes a bunch of things, making RFUAV work out of the box.
 
 ## Abstract
 
@@ -30,6 +34,27 @@ With the RFUAV you can achieve drone signal detection and drone identification o
     pip install -r requirements.txt
 
 </details>
+
+<details>
+<summary>Download pretrained models and data</summary>
+
+<br>
+
+The data set and pre-trained model weights are available at  
+👉 <a href="https://huggingface.co/datasets/kitofrank/RFUAV">Hugging Face</a>
+
+Download the pre-trained model weights from these links and put them in the `models` directory. Currently, I have adjusted the config files for:
+
+1. <a href="https://huggingface.co/datasets/kitofrank/RFUAV/resolve/main/weight/exp1/mobilenet_v3_small.pth?download=true">MobileNet V3 Small</a>  
+2. <a href="https://huggingface.co/datasets/kitofrank/RFUAV/resolve/main/weight/exp1/ResNet101.pth?download=true">ResNet101</a>  
+3. <a href="https://huggingface.co/datasets/kitofrank/RFUAV/resolve/main/weight/exp1/vit_l_16.pth?download=true">ViT-L/16</a>
+
+Raw data may also be downloaded, for instance, for  
+📦 <a href="https://huggingface.co/datasets/kitofrank/RFUAV/resolve/main/DJI%20MINI3.rar?download=true">DJI Mini 3</a>  
+Download and extract it in: `data/raw/DJI Mini 3/`
+
+</details>
+
 
 <details>
 <summary>Classify the drone with utils.benchmark </summary>
